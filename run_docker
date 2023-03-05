@@ -1,0 +1,1 @@
+docker run --rm -it --mount type=bind,source="$(pwd)"/,target=/usr/src/app/ spc

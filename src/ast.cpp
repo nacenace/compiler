@@ -1,0 +1,57 @@
+#include <sstream>
+#include <iostream>
+#include <fmt/core.h>
+#include "ast.hpp"
+
+using namespace exp;
+using namespace std;
+
+using NodePtr = std::shared_ptr<AbstractNode>;
+
+void AbstractNode::print_json() const {
+    clog << this->to_json() << endl;
+}
+
+string AbstractNode::to_json() const {
+    std::stringstream ret;
+    ret << "{";
+    ret << this->json_head();
+    if (this->should_have_children())
+    {
+        ret << ", \"children\": [";
+        bool is_first = true;
+        for (auto &node : this->_children)
+        {
+            if (is_first) is_first = false;
+            else ret << ", ";
+            ret << node->to_json();
+        }
+        ret << "]";
+    }
+    ret << "}";
+    return ret.str();
+} 
+
+string SysCallNode::json_head() const {
+    return std::string{"\"type\": \"SysCall\", \"identifier\": \""} + to_string(this->routine->routine) +
+                   "\", \"args\": " + this->args->to_json();
+}
+
+SysCallNode::SysCallNode(const NodePtr &routine, const NodePtr &args)
+                : routine(cast_node<SysRoutineNode>(routine)), args(cast_node<ArgListNode>(args)) {}
+
+std::string exp::type2string(Type type) {
+    const std::map<Type, std::string> type_to_string{
+        {Type::UNDEFINED, "<undefined-type>"},
+        {Type::STRING,    "string"},
+    };
+    return type_to_string.at(type);
+}
+
+std::string SimpleTypeNode::json_head() const {
+    return fmt::format("\"type\": \"Type\", \"name\":\"{}\"",type2string(this->type));
+}
+
+std::string StringTypeNode::json_head() const {
+    return fmt::format("\"type\": \"Type\", \"name\":\"{}\"",type2string(this->type));
+}
