@@ -18,8 +18,8 @@ add_definitions(${LLVM_DEFINITIONS})
 
 file(GLOB SOURCE_FILES
     "src/main.cpp"
-    "src/ast.hpp"
-    "src/ast.cpp"
+    "src/*.hpp"
+    "src/*.cpp"
 )
 
 add_executable(exp

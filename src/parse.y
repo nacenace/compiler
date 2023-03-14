@@ -7,7 +7,7 @@
     #include "ast.hpp"
     #include "y.tab.h"
 
-    using namespace exp;
+    using namespace spc;
 
     int yylex();
     int yyerror(const char *s);
@@ -15,7 +15,7 @@
     YYSTYPE program;
 %}
 
-%define api.value.type {std::shared_ptr<exp::AbstractNode>}
+%define api.value.type {std::shared_ptr<spc::AbstractNode>}
 %define parse.error verbose
 %define parse.lac full
 

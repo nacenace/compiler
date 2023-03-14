@@ -5,7 +5,7 @@
     #include "ast.hpp"
     #include "y.tab.h"
 
-    using namespace exp;
+    using namespace spc;
 
     int line_no = 1;
     void commenteof();
