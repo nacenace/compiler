@@ -13,7 +13,7 @@
 namespace spc {
 /* -------- syscall nodes -------- */
 llvm::Value *SysCallNode::codegen(CodegenContext &context) {
-  if (routine->routine == SysRoutine::WRITELN) {
+  if (routine->routine == SysRoutine::WRITELN || routine->routine == SysRoutine::WRITE) {
     auto char_ptr = context.builder.getInt8Ty()->getPointerTo();
     auto printf_type = llvm::FunctionType::get(context.builder.getInt32Ty(), char_ptr, true);
     auto printf_func = context.module->getOrInsertFunction("printf", printf_type);
