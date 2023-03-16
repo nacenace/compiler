@@ -214,11 +214,12 @@ struct FuncExprNode : public ExprNode {
 
 enum class SysRoutine {
   /// 输出并回车
-  WRITELN
+  WRITELN,
+  WRITE
 };
 
 inline std::string to_string(SysRoutine routine) {
-  std::map<SysRoutine, std::string> routine_to_string{{SysRoutine::WRITELN, "writeln"}};
+  std::map<SysRoutine, std::string> routine_to_string{{SysRoutine::WRITELN, "writeln"}, {SysRoutine::WRITE, "write"}};
   // TODO: bound checking
   return routine_to_string[routine];
 }
