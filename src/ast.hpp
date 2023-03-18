@@ -29,7 +29,12 @@ struct FuncExprNode;
 struct SysRoutineNode;
 struct SysCallNode;
 struct ArgListNode;
+struct VarDeclNode;
+struct VarListNode;
+struct ConstDeclNode;
 struct ConstListNode;
+struct TypeDefNode;
+struct TypeListNode;
 struct RoutineCallNode;
 struct RoutineNode;
 struct ProgramNode;
@@ -57,7 +62,7 @@ typename std::enable_if<std::is_base_of<AbstractNode, TNode>::value, std::shared
 }
 
 template <typename NodeType, typename... Args>
-std::shared_ptr<AbstractNode> make_node(Args &&...args) {
+std::shared_ptr<AbstractNode> make_node(Args &&... args) {
   return std::dynamic_pointer_cast<AbstractNode>(std::make_shared<NodeType>(std::forward<Args>(args)...));
 };
 
@@ -254,6 +259,96 @@ struct SysCallNode : public DummyNode {
 struct ArgListNode : public DummyNode {
  protected:
   std::string json_head() const override { return std::string{"\"type\": \"ArgList\""}; }
+
+  bool should_have_children() const override { return true; }
+};
+
+/// 变量声明语义节点
+struct VarDeclNode : public DummyNode {
+ public:
+  /// 变量名
+  std::shared_ptr<IdentifierNode> name;
+  /// 变量类型
+  std::shared_ptr<TypeNode> type;
+
+  VarDeclNode(const std::shared_ptr<AbstractNode> &name, const std::shared_ptr<AbstractNode> &type)
+      : name(cast_node<IdentifierNode>(name)), type(cast_node<TypeNode>(type)) {}
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override {
+    return std::string{"\"type\": \"VarDecl\", \"name\": "} + this->name->to_json() +
+           ", \"decl\": " + this->type->to_json();
+  }
+
+  bool should_have_children() const override { return false; }
+};
+/// 变量列表语义节点
+struct VarListNode : public DummyNode {
+ public:
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override { return std::string{"\"type\": \"VarList\""}; }
+
+  bool should_have_children() const override { return true; }
+};
+/// 常量声明语义节点
+struct ConstDeclNode : public DummyNode {
+ public:
+  std::shared_ptr<IdentifierNode> name;
+  std::shared_ptr<ConstValueNode> value;
+
+  ConstDeclNode(const std::shared_ptr<AbstractNode> &name, const std::shared_ptr<AbstractNode> &value)
+      : name(cast_node<IdentifierNode>(name)), value(cast_node<ConstValueNode>(value)) {}
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override {
+    return std::string{"\"type\": \"ConstDecl\", \"name\": "} + this->name->to_json() +
+           ", \"value\": " + this->value->to_json();
+  }
+
+  bool should_have_children() const override { return false; }
+};
+/// 常量列表语义节点
+struct ConstListNode : public DummyNode {
+ public:
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override { return std::string{"\"type\": \"ConstList\""}; }
+
+  bool should_have_children() const override { return true; }
+};
+/// 类型定义语义节点
+struct TypeDefNode : public DummyNode {
+ public:
+  std::shared_ptr<IdentifierNode> name;
+  std::shared_ptr<TypeNode> type;
+
+  TypeDefNode(const std::shared_ptr<AbstractNode> &name, const std::shared_ptr<AbstractNode> &type)
+      : name(cast_node<IdentifierNode>(name)), type(cast_node<TypeNode>(type)) {}
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override {
+    return std::string{"\"type\": \"TypeDef\", \"name\": "} + this->name->to_json() +
+           ", \"alias\": " + this->type->to_json();
+  }
+
+  bool should_have_children() const override { return false; }
+};
+/// 类型列表语义节点
+struct TypeListNode : public DummyNode {
+ public:
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override { return std::string{"\"type\": \"TypeList\""}; }
 
   bool should_have_children() const override { return true; }
 };
