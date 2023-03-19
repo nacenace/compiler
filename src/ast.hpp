@@ -23,8 +23,16 @@ struct StmtNode;
 struct IdentifierNode;
 struct TypeNode;
 struct StringTypeNode;
+struct RealTypeNode;
+struct IntegerTypeNode;
+struct BoolenTypeNode;
+struct CharTypeNode;
 struct ConstValueNode;
 struct StringNode;
+struct RealNode;
+struct IntegerNode;
+struct CharNode;
+struct BoolenNode;
 struct FuncExprNode;
 struct SysRoutineNode;
 struct SysCallNode;
@@ -146,6 +154,10 @@ enum class Type {
   UNDEFINED,
   /// 字符串
   STRING,
+  BOOLEN,
+  INTEGER,
+  REAL,
+  CHAR
 };
 
 std::string type2string(Type type);
@@ -173,6 +185,34 @@ struct StringTypeNode : public TypeNode {
   virtual bool should_have_children() const override { return false; }
 };
 
+struct BoolenTypeNode : public TypeNode {
+ public:
+  BoolenTypeNode() { type = Type::BOOLEN; }
+  virtual std::string json_head() const override;
+  virtual bool should_have_children() const override { return false; }
+};
+
+struct IntegerTypeNode : public TypeNode {
+ public:
+  IntegerTypeNode() { type = Type::INTEGER; }
+  virtual std::string json_head() const override;
+  virtual bool should_have_children() const override { return false; }
+};
+
+struct RealTypeNode : public TypeNode {
+ public:
+  RealTypeNode() { type = Type::REAL; }
+  virtual std::string json_head() const override;
+  virtual bool should_have_children() const override { return false; }
+};
+
+struct CharTypeNode : public TypeNode {
+ public:
+  CharTypeNode() { type = Type::CHAR; }
+  virtual std::string json_head() const override;
+  virtual bool should_have_children() const override { return false; }
+};
+
 struct ConstValueNode : public ExprNode {
  protected:
   ConstValueNode() { type = nullptr; }
@@ -194,6 +234,65 @@ struct StringNode : public ConstValueNode {
 
  protected:
   std::string json_head() const override { return std::string{"\"type\": \"String\", \"value\": \""} + val + "\""; }
+};
+
+struct BoolenNode : public ConstValueNode {
+ public:
+  std::string val;
+
+  StringNode(const char *val) : val(val) {
+    type = std::make_shared<SimpleTypeNode>(Type::BOOLEN);
+  }
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override { return std::string{"\"type\": \"Boolen\", \"value\": \""} + val + "\""; }
+};
+
+
+struct RealNode : public ConstValueNode {
+ public:
+  std::string val;
+
+  RealNode(const char *val) : val(val) {
+    type = std::make_shared<SimpleTypeNode>(Type::REAL);
+  }
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override { return std::string{"\"type\": \"Real\", \"value\": \""} + val + "\""; }
+};
+
+struct IntegerNode : public ConstValueNode {
+ public:
+  std::int val;
+
+  RealNode(const char *val) : val(val) {
+    type = std::make_shared<SimpleTypeNode>(Type::INTEGER);
+  }
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override { return std::string{"\"type\": \"Integer\", \"value\": \""} + val + "\""; }
+};
+
+struct CharNode : public ConstValueNode {
+ public:
+  std::char val;
+
+  RealNode(const char val) : val(val) {
+    this->val.erase(this->val.begin());
+    this->val.pop_back();
+    type = std::make_shared<SimpleTypeNode>(Type::CHAR);
+  }
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override { return std::string{"\"type\": \"Char\", \"value\": \""} + val + "\""; }
 };
 
 struct FuncExprNode : public ExprNode {

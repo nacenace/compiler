@@ -112,4 +112,8 @@ llvm::Value *ProcStmtNode::codegen(CodegenContext &context) {
 
 /* -------- const value nodes -------- */
 llvm::Value *StringNode::codegen(CodegenContext &context) { return context.builder.CreateGlobalStringPtr(val); }
+llvm::Value *BoolenNode::codegen(CodegenContext &context) { return context.builder.CreateGlobalStringPtr(val); }
+llvm::Value *RealNode::codegen(CodegenContext &context) { return context.builder.CreateGlobalStringPtr(val); }
+llvm::Value *IntegerNode::codegen(CodegenContext &context) { return context.builder.CreateGlobalStringPtr(val); }
+llvm::Value *CharNode::codegen(CodegenContext &context) { return context.builder.CreateGlobalStringPtr(val); }
 }  // namespace spc
