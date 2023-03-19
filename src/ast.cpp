@@ -58,19 +58,3 @@ std::string SimpleTypeNode::json_head() const {
 std::string StringTypeNode::json_head() const {
   return fmt::format("\"type\": \"Type\", \"name\":\"{}\"", type2string(this->type));
 }
-
-std::string RealTypeNode::json_head() const {
-  return fmt::format("\"type\": \"Type\", \"name\":\"{}\"", type2string(this->type));
-}
-
-std::string IntegerTypeNode::json_head() const {
-  return fmt::format("\"type\": \"Type\", \"name\":\"{}\"", type2string(this->type));
-}
-
-std::string BoolenTypeNode::json_head() const {
-  return fmt::format("\"type\": \"Type\", \"name\":\"{}\"", type2string(this->type));
-}
-
-std::string CharTypeNode::json_head() const {
-  return fmt::format("\"type\": \"Type\", \"name\":\"{}\"", type2string(this->type));
-}
