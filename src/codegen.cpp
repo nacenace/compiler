@@ -122,7 +122,7 @@ llvm::Value *RealNode::codegen(CodegenContext &context) {
 }
 llvm::Value *IntegerNode::codegen(CodegenContext &context) {
   auto *type = context.builder.getInt32Ty();
-  return llvm::ConstantFP::get(type, val);
+  return llvm::ConstantInt::getSigned(type, val);;
 }
 llvm::Value *CharNode::codegen(CodegenContext &context) { return context.builder.getInt8(static_cast<uint8_t>(val)); }
 
