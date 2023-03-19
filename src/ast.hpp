@@ -226,9 +226,9 @@ struct BoolenNode : public ConstValueNode {
 
 struct RealNode : public ConstValueNode {
  public:
-  float val;
+  double val;
 
-  RealNode(const float val) : val(val) {
+  RealNode(const double val) : val(val) {
     type = std::make_shared<SimpleTypeNode>(Type::REAL);
   }
 
@@ -245,7 +245,7 @@ struct RealNode : public ConstValueNode {
 
 struct IntegerNode : public ConstValueNode {
  public:
-  std::int val;
+  int val;
 
   IntegerNode(const int val) : val(val) {
     type = std::make_shared<SimpleTypeNode>(Type::INTEGER);
