@@ -42,6 +42,11 @@ std::string spc::type2string(Type type) {
   const std::map<Type, std::string> type_to_string{
       {Type::UNDEFINED, "<undefined-type>"},
       {Type::STRING, "string"},
+      {Type::INTEGER, "integer"},
+      {Type::REAL, "real"},
+      {Type::BOOLEN, "boolen"},
+      {Type::CHAR, "char"}
+
   };
   return type_to_string.at(type);
 }

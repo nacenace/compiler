@@ -115,6 +115,16 @@ llvm::Value *ProcStmtNode::codegen(CodegenContext &context) {
 
 /* -------- const value nodes -------- */
 llvm::Value *StringNode::codegen(CodegenContext &context) { return context.builder.CreateGlobalStringPtr(val); }
+llvm::Value *BoolenNode::codegen(CodegenContext &context) { return val == true ? context.builder.getTrue() : context.builder.getFalse(); }
+llvm::Value *RealNode::codegen(CodegenContext &context) {
+  auto *type = context.builder.getDoubleTy();
+  return llvm::ConstantFP::get(type, val);
+}
+llvm::Value *IntegerNode::codegen(CodegenContext &context) {
+  auto *type = context.builder.getInt32Ty();
+  return llvm::ConstantInt::getSigned(type, val);;
+}
+llvm::Value *CharNode::codegen(CodegenContext &context) { return context.builder.getInt8(static_cast<uint8_t>(val)); }
 
 /* -------- decl nodes -------- */
 llvm::Value *ConstListNode::codegen(CodegenContext &context) {
