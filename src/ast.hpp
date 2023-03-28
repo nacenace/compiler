@@ -220,7 +220,7 @@ struct BoolenNode : public ConstValueNode {
   llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
-  std::string json_head() const override { return std::string{"\"type\": \"Boolen\", \"value\": \""} + val == true ? "true" : "false" + "\""; }
+  std::string json_head() const override { return std::string{"\"type\": \"Boolen\", \"value\": \""} + (val == true ? "true" : "false") + "\""; }
 };
 
 
@@ -264,7 +264,7 @@ struct IntegerNode : public ConstValueNode {
 
 struct CharNode : public ConstValueNode {
  public:
-  std::char val;
+  char val;
 
   CharNode(const char val) : val(val) {
     type = std::make_shared<SimpleTypeNode>(Type::CHAR);

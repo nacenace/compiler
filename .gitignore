@@ -6,6 +6,7 @@
 lex.yy.c
 y.tab.c
 y.tab.h
+compile_commands.json
 
 .idea/
 cmake-build-debug/
@@ -15,5 +16,7 @@ cmake-build-debug/
 .DS_Store
 
 /build
+/.clangd
+/.cache
 
 /.vscode
