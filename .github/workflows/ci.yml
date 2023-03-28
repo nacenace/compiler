@@ -1,21 +1,13 @@
-name: Build test
-
-on: push
+name: C++ CI
+on: [push, pull_request]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
-    container:
-      image: docker://my-docker-image:latest
-      build:
-        context: .
-        dockerfile: Dockerfile
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v2
-      - name: Build C++ project
-        run: |
-          mkdir build
-          cd build
-          cmake ..
-          make
+    - uses: actions/checkout@v2
+    - name: Build and test with Docker
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: Dockerfile

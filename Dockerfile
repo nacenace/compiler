@@ -63,3 +63,7 @@ RUN git clone  https://github.com/fmtlib/fmt.git && cd fmt && cmake . && make &&
 WORKDIR /usr/src/app
 
 CMD bash
+
+COPY . .
+
+RUN mkdir build && cd build && cmake .. && make
