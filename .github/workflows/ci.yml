@@ -1,0 +1,21 @@
+name: Build test
+
+on: push
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    container:
+      image: docker://my-docker-image:latest
+      build:
+        context: .
+        dockerfile: Dockerfile
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Build C++ project
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          make
