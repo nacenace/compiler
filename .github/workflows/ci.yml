@@ -18,7 +18,7 @@ jobs:
         sudo apt-get install clang-format
 
         # Check code formatting
-        CHANGED_FILES=$(git diff --name-only HEAD~1)
+        CHANGED_FILES=$(git diff --name-only HEAD)
         for FILE in $CHANGED_FILES; do
           if [[ $FILE == *\.cpp ]] || [[ $FILE == *\.h ]]; then
             if ! clang-format -style=file $FILE | cmp -s $FILE -; then

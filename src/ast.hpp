@@ -66,7 +66,7 @@ typename std::enable_if<std::is_base_of<AbstractNode, TNode>::value, std::shared
 }
 
 template <typename NodeType, typename... Args>
-std::shared_ptr<AbstractNode> make_node(Args &&... args) {
+std::shared_ptr<AbstractNode> make_node(Args &&...args) {
   return std::dynamic_pointer_cast<AbstractNode>(std::make_shared<NodeType>(std::forward<Args>(args)...));
 };
 
@@ -213,45 +213,42 @@ struct BoolenNode : public ConstValueNode {
  public:
   bool val;
 
-  BoolenNode(const bool val) : val(val){
-    type = std::make_shared<SimpleTypeNode>(Type::BOOLEN);
-  }
+  BoolenNode(const bool val) : val(val) { type = std::make_shared<SimpleTypeNode>(Type::BOOLEN); }
 
   llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
-  std::string json_head() const override { return std::string{"\"type\": \"Boolen\", \"value\": \""} + (val == true ? "true" : "false") + "\""; }
+  std::string json_head() const override {
+    return std::string{"\"type\": \"Boolen\", \"value\": \""} + (val == true ? "true" : "false") + "\"";
+  }
 };
-
 
 struct RealNode : public ConstValueNode {
  public:
   double val;
 
-  RealNode(const double val) : val(val) {
-    type = std::make_shared<SimpleTypeNode>(Type::REAL);
-  }
+  RealNode(const double val) : val(val) { type = std::make_shared<SimpleTypeNode>(Type::REAL); }
 
   RealNode(const char *val) {
     this->val = atof(val);
-    type = std::make_shared<SimpleTypeNode>(Type::REAL); 
+    type = std::make_shared<SimpleTypeNode>(Type::REAL);
   }
 
   llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
-  std::string json_head() const override { return std::string{"\"type\": \"Real\", \"value\": \""} + std::to_string(val) + "\""; }
+  std::string json_head() const override {
+    return std::string{"\"type\": \"Real\", \"value\": \""} + std::to_string(val) + "\"";
+  }
 };
 
 struct IntegerNode : public ConstValueNode {
  public:
   int val;
 
-  IntegerNode(const int val) : val(val) {
-    type = std::make_shared<SimpleTypeNode>(Type::INTEGER);
-  }
+  IntegerNode(const int val) : val(val) { type = std::make_shared<SimpleTypeNode>(Type::INTEGER); }
 
-  IntegerNode(const char* val) {
+  IntegerNode(const char *val) {
     this->val = atoi(val);
     type = std::make_shared<SimpleTypeNode>(Type::INTEGER);
   }
@@ -259,21 +256,20 @@ struct IntegerNode : public ConstValueNode {
   llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
-  std::string json_head() const override { return std::string{"\"type\": \"Integer\", \"value\": \""} + std::to_string(val) + "\""; }
+  std::string json_head() const override {
+    return std::string{"\"type\": \"Integer\", \"value\": \""} + std::to_string(val) + "\"";
+  }
 };
 
 struct CharNode : public ConstValueNode {
  public:
   char val;
 
-  CharNode(const char val) : val(val) {
-    type = std::make_shared<SimpleTypeNode>(Type::CHAR);
-  }
+  CharNode(const char val) : val(val) { type = std::make_shared<SimpleTypeNode>(Type::CHAR); }
   CharNode(const char *val) {
     this->val = *(val + 1);
-    type = std::make_shared<SimpleTypeNode>(Type::CHAR); 
+    type = std::make_shared<SimpleTypeNode>(Type::CHAR);
   }
-
 
   llvm::Value *codegen(CodegenContext &context) override;
 
