@@ -30,7 +30,7 @@ void emit_target(raw_fd_ostream &dest, TargetMachine::CodeGenFileType type, Modu
   InitializeAllAsmParsers();
   InitializeAllAsmPrinters();
 
-  // 设置默认输出Target
+  // 设置默认输出 Target
   auto target_triple = sys::getDefaultTargetTriple();
   module.setTargetTriple(target_triple);
 
@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[i], "-O") == 0)
       optimization = true;
     else if (strcmp(argv[i], "-ast") == 0) {
-      ast = true;                             // 输出ast树
+      ast = true;                             // 输出 ast 树
     } else if (strcmp(argv[i], "-o") == 0) {  // 输出文件名
       //./spc -S -o outputname srcname
       i++;
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
   }
 
   // 输出 sourceFile 的内容
-  cout << "sourceFile: " << sourceFile << endl;
+  // cout << "sourceFile: " << sourceFile << endl;
 
   yyparse();  // 开始词法分析
 
