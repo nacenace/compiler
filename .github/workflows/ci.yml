@@ -11,6 +11,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Check code formatting
+      run: |
+        # Install clang-format
+        sudo apt-get update
+        sudo apt-get install clang-format
+
+        # Check code formatting
+        CHANGED_FILES=$(git diff --name-only HEAD~1)
+        for FILE in $CHANGED_FILES; do
+          if [[ $FILE == *\.cpp ]] || [[ $FILE == *\.h ]]; then
+            if ! clang-format -style=file $FILE | cmp -s $FILE -; then
+              echo "Code formatting check failed: $FILE"
+              exit 1
+            fi
+          fi
+        done
     - name: Build and test with Docker
       uses: docker/build-push-action@v2
       with:
