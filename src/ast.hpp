@@ -549,6 +549,32 @@ struct CompoundStmtNode : public StmtNode {
   bool should_have_children() const override { return true; }
 };
 
+struct AssignStmtNode : public StmtNode {
+  using NodePtr = std::shared_ptr<AbstractNode>;
+
+ public:
+  /// 被赋值量
+  std::shared_ptr<ExprNode> lhs;
+  /// 赋值量
+  std::shared_ptr<ExprNode> rhs;
+
+  AssignStmtNode(const NodePtr &lhs, const NodePtr &rhs)
+      : lhs(cast_node<ExprNode>(lhs)), rhs(cast_node<ExprNode>(rhs)) {
+    assert(is_a_ptr_of<IdentifierNode>(lhs)
+           /* || is_a_ptr_of<ArrayRefNode>(lhs) || is_a_ptr_of<RecordRefNode>(lhs) */);
+  }
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override {
+    return std::string{"\"type\": \"AssignStmt\", \"lhs\": "} + this->lhs->to_json() +
+           ", \"rhs\": " + this->rhs->to_json();
+  }
+
+  bool should_have_children() const override { return false; }
+};
+
 struct ProcStmtNode : public StmtNode {
  public:
   std::shared_ptr<AbstractNode> proc_call;

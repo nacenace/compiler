@@ -116,6 +116,24 @@ llvm::Value *IdentifierNode::get_ptr(CodegenContext &context) {
 llvm::Value *IdentifierNode::codegen(CodegenContext &context) { return context.builder.CreateLoad(get_ptr(context)); }
 
 /* -------- stmt nodes -------- */
+llvm::Value *AssignStmtNode::codegen(CodegenContext &context) {
+  auto assignee = cast_node<LeftValueExprNode>(this->lhs);
+  auto *lhs = assignee->get_ptr(context);
+  auto *rhs = this->rhs->codegen(context);
+  auto *lhs_type = lhs->getType()->getPointerElementType();
+  auto *rhs_type = rhs->getType();
+  if (lhs_type->isDoubleTy() && rhs_type->isIntegerTy(32)) {
+    rhs = context.builder.CreateSIToFP(rhs, context.builder.getDoubleTy());
+  } else if (!((lhs_type->isIntegerTy(1) && rhs_type->isIntegerTy(1)) ||
+               (lhs_type->isIntegerTy(8) && rhs_type->isIntegerTy(8)) ||
+               (lhs_type->isIntegerTy(32) && rhs_type->isIntegerTy(32)) ||
+               (lhs_type->isDoubleTy() && rhs_type->isDoubleTy()))) {
+    throw CodegenException("incompatible type in assignments: " + assignee->name);
+  }
+  context.builder.CreateStore(rhs, lhs);
+  return nullptr;
+}
+
 llvm::Value *ProcStmtNode::codegen(CodegenContext &context) {
   proc_call->codegen(context);
   return nullptr;
