@@ -491,6 +491,31 @@ struct RoutineCallNode : public DummyNode {
   bool should_have_children() const final { return false; }
 };
 
+struct HeadListNode : public DummyNode {
+ public:
+  using NodePtr = std::shared_ptr<AbstractNode>;
+  std::shared_ptr<ConstListNode> const_list;
+  std::shared_ptr<TypeListNode> type_list;
+  std::shared_ptr<VarListNode> var_list;
+  // std::shared_ptr<SubroutineListNode> subroutine_list;
+
+  HeadListNode(const NodePtr &consts, const NodePtr &types, const NodePtr &vars /*, const NodePtr &subroutines */)
+      : const_list(cast_node<ConstListNode>(consts)),
+        type_list(cast_node<TypeListNode>(types)),
+        var_list(cast_node<VarListNode>(vars))
+  /*, subroutine_list(cast_node<SubroutineListNode>(subroutines)) */ {}
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override {
+    return std::string{"\"type\": \"HeadList\", \"consts\": "} + this->const_list->to_json() +
+           ", \"types\": " + this->type_list->to_json() + ", \"vars\": " + this->var_list->to_json();
+  }
+
+  bool should_have_children() const final { return false; }
+};
+
 /// 过程语义节点
 struct RoutineNode : public DummyNode {
  public:

@@ -97,6 +97,14 @@ llvm::Value *ProgramNode::codegen(CodegenContext &context) {
   return nullptr;
 }
 
+llvm::Value *HeadListNode::codegen(CodegenContext &context) {
+  const_list->codegen(context);
+  type_list->codegen(context);
+  var_list->codegen(context);
+  // subroutine_list->codegen(context);
+  return nullptr;
+}
+
 /* -------- identifier nodes -------- */
 llvm::Value *IdentifierNode::get_ptr(CodegenContext &context) {
   auto value = context.symbolTable.getLocalSymbol(name);
