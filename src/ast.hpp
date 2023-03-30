@@ -45,6 +45,7 @@ struct TypeDefNode;
 struct TypeListNode;
 // 结构语句相关
 struct RoutineCallNode;
+struct HeadListNode;
 struct RoutineNode;
 struct ProgramNode;
 struct CompoundStmtNode;
