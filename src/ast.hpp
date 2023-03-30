@@ -15,20 +15,24 @@
 #include <utility>
 
 namespace spc {
+// 顶层类
 struct AbstractNode;
 struct DummyNode;
 struct ExprNode;
 struct LeftValueExprNode;
 struct StmtNode;
 struct IdentifierNode;
+// type def
 struct TypeNode;
 struct StringTypeNode;
 struct ConstValueNode;
+// 字面量相关
 struct StringNode;
 struct RealNode;
 struct IntegerNode;
 struct CharNode;
 struct BoolenNode;
+// 表达式相关
 struct FuncExprNode;
 struct SysRoutineNode;
 struct SysCallNode;
@@ -39,6 +43,7 @@ struct ConstDeclNode;
 struct ConstListNode;
 struct TypeDefNode;
 struct TypeListNode;
+// 结构语句相关
 struct RoutineCallNode;
 struct RoutineNode;
 struct ProgramNode;
@@ -66,7 +71,7 @@ typename std::enable_if<std::is_base_of<AbstractNode, TNode>::value, std::shared
 }
 
 template <typename NodeType, typename... Args>
-std::shared_ptr<AbstractNode> make_node(Args &&...args) {
+std::shared_ptr<AbstractNode> make_node(Args &&... args) {
   return std::dynamic_pointer_cast<AbstractNode>(std::make_shared<NodeType>(std::forward<Args>(args)...));
 };
 
@@ -277,6 +282,39 @@ struct CharNode : public ConstValueNode {
   std::string json_head() const override { return std::string{"\"type\": \"Char\", \"value\": \""} + val + "\""; }
 };
 
+enum class BinaryOperator { GT, GE, LT, LE, EQ, NE, ADD, SUB, MUL, TRUEDIV, DIV, MOD, AND, OR, XOR };
+
+inline std::string to_string(BinaryOperator binop) {
+  std::map<BinaryOperator, std::string> binop_to_string{
+      {BinaryOperator::GT, ">"},      {BinaryOperator::GE, ">="},   {BinaryOperator::LT, "<"},
+      {BinaryOperator::LE, "<="},     {BinaryOperator::EQ, "="},    {BinaryOperator::NE, "<>"},
+      {BinaryOperator::ADD, "+"},     {BinaryOperator::SUB, "-"},   {BinaryOperator::MUL, "*"},
+      {BinaryOperator::TRUEDIV, "/"}, {BinaryOperator::DIV, "div"}, {BinaryOperator::MOD, "mod"},
+      {BinaryOperator::AND, "and"},   {BinaryOperator::OR, "or"},   {BinaryOperator::XOR, "xor"}};
+  // TODO: bound checking
+  return binop_to_string[binop];
+}
+
+struct BinopExprNode : public ExprNode {
+ public:
+  BinaryOperator op;
+  std::shared_ptr<ExprNode> lhs;
+  std::shared_ptr<ExprNode> rhs;
+
+  BinopExprNode(BinaryOperator op, const std::shared_ptr<AbstractNode> &lhs, const std::shared_ptr<AbstractNode> &rhs)
+      : op(op), lhs(cast_node<ExprNode>(lhs)), rhs(cast_node<ExprNode>(rhs)) {}
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  bool should_have_children() const override { return false; }
+
+  std::string json_head() const override {
+    return std::string{"\"type\": \"BinopExpr\", \"op\": \""} + to_string(this->op) +
+           "\", \"lhs\": " + this->lhs->to_json() + ", \"rhs\": " + this->rhs->to_json();
+  }
+};
+
 struct FuncExprNode : public ExprNode {
  public:
   std::shared_ptr<AbstractNode> func_call;
@@ -284,6 +322,8 @@ struct FuncExprNode : public ExprNode {
   FuncExprNode(const std::shared_ptr<AbstractNode> &func_call) : func_call(func_call) {
     assert(is_a_ptr_of<RoutineCallNode>(func_call) || is_a_ptr_of<SysCallNode>(func_call));
   }
+
+  llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
   std::string json_head() const override {
