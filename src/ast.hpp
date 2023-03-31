@@ -24,6 +24,7 @@ struct StmtNode;
 struct IdentifierNode;
 // type def
 struct TypeNode;
+struct SimpleTypeNode;
 struct StringTypeNode;
 struct ConstValueNode;
 // 字面量相关
@@ -33,6 +34,7 @@ struct IntegerNode;
 struct CharNode;
 struct BoolenNode;
 // 表达式相关
+struct BinopExprNode;
 struct FuncExprNode;
 struct SysRoutineNode;
 struct SysCallNode;
@@ -49,6 +51,7 @@ struct HeadListNode;
 struct RoutineNode;
 struct ProgramNode;
 struct CompoundStmtNode;
+struct AssignStmtNode;
 struct ProcStmtNode;
 struct StmtList;
 
@@ -193,6 +196,9 @@ struct StringTypeNode : public TypeNode {
 };
 
 struct ConstValueNode : public ExprNode {
+ public:
+  llvm::Type *get_llvm_type(CodegenContext &context) const;
+
  protected:
   ConstValueNode() { type = nullptr; }
 

@@ -50,43 +50,6 @@ struct CodegenContext final {
       mpm->add(llvm::createFunctionInliningPass());  // 函数内联 这个加不加区别不大
     }
   }
-  /*
-      llvm::Value *get_local(std::string key)
-      {
-          auto it = locals.find(key);
-          if (it != locals.end()) return it->second;
-          else return nullptr;
-      }
-      bool set_local(std::string key, llvm::Value *value)
-      {
-          if (get_local(key)) return false;
-          locals[key] = value;
-          return true;
-      }
-      void reset_locals()
-      {
-          locals.clear();
-          localsType.clear();
-      }
-      llvm::Type *get_alias(std::string key)
-      {
-          auto it = aliases.find(key);
-          if (it != aliases.end()) return it->second;
-          else return nullptr;
-      }
-      bool set_alias(std::string key, llvm::Type *value)
-      {
-          if (get_alias(key)) return false;
-          aliases[key] = value;
-          return true;
-      }
-
-  private:
-      std::map<std::string,std::shared_ptr<TypeNode>> globalsType; //全局变量的类型
-      std::map<std::string,llvm::Value*> locals; //局部变量
-      std::map<std::string,std::shared_ptr<TypeNode>> localsType; //局部变量的类型
-      std::map<std::string,llvm::Type*> aliases; //类型别名
-  */
 };
 /// 代码生成异常类，是std::exception的派生类 用来输出在编译时遇到的错误
 class CodegenException : public std::exception {

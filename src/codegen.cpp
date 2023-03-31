@@ -53,10 +53,20 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
 /* -------- type nodes -------- */
 static llvm::Type *llvm_type(Type type, CodegenContext &context) {
   switch (type) {
+    case Type::BOOLEN:
+      return context.builder.getInt1Ty();
+    case Type::INTEGER:
+      return context.builder.getInt32Ty();
+    case Type::REAL:
+      return context.builder.getDoubleTy();
+    case Type::CHAR:
+      return context.builder.getInt8Ty();
     default:
       return nullptr;
   }
 }
+
+llvm::Type *ConstValueNode::get_llvm_type(CodegenContext &context) const { return this->type->get_llvm_type(context); }
 
 llvm::Type *TypeNode::get_llvm_type(CodegenContext &context) const {
   if (auto *simple_type = dynamic_cast<const SimpleTypeNode *>(this)) {
