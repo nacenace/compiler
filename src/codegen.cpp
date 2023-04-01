@@ -55,22 +55,16 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
     for (auto &arg : args->children()) {
       auto value = arg->codegen(context);
       std::vector<llvm::Value *> args;
-      auto name = cast_node<LeftValueExprNode>(arg)->name;
-      std::shared_ptr<Symbol> symbol = context.symbolTable.getGlobalSymbol(name);
-      if (context.symbolTable.getGlobalSymbol(name))
-        symbol = context.symbolTable.getLocalSymbol(name);
-      if(!symbol)
-        throw CodegenException("Use of undeclared identifier in read()");
-
+      auto ptr = cast_node<IdentifierNode>(arg)->get_ptr(context);
       if (value->getType()->isIntegerTy(8)) {
         args.push_back(context.builder.CreateGlobalStringPtr("%c"));
-        args.push_back(symbol->get_llvmptr());
+        args.push_back(ptr);
       } else if (value->getType()->isIntegerTy()) {
         args.push_back(context.builder.CreateGlobalStringPtr("%d"));
-        args.push_back(symbol->get_llvmptr());
+        args.push_back(ptr);
       } else if (value->getType()->isDoubleTy()) {
         args.push_back(context.builder.CreateGlobalStringPtr("%f"));
-        args.push_back(symbol->get_llvmptr());
+        args.push_back(ptr);
       }
       else {
           throw CodegenException("incompatible type in read(): expected char, integer, real");
