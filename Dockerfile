@@ -14,6 +14,10 @@ RUN apt-get update && \
     cmake \
     make \
     build-essential \
+    gdb\
+    gdbserver\
+    rsync\
+    openssh-server\
     zlib1g-dev && \
     apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*

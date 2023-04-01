@@ -343,11 +343,24 @@ struct FuncExprNode : public ExprNode {
 enum class SysRoutine {
   /// 输出并回车
   WRITELN,
-  WRITE
+  WRITE,
+  READ,
+  READLN,
+  SQRT,
+  ABS,
+  ORD,
+  PRED,
+  SUCC,
+  CHR
 };
 
 inline std::string to_string(SysRoutine routine) {
-  std::map<SysRoutine, std::string> routine_to_string{{SysRoutine::WRITELN, "writeln"}, {SysRoutine::WRITE, "write"}};
+  std::map<SysRoutine, std::string> routine_to_string{
+      {SysRoutine::WRITELN, "writeln"}, {SysRoutine::WRITE, "write"}, {SysRoutine::READ, "read"},
+      {SysRoutine::READLN, "readln"},   {SysRoutine::SQRT, "sqrt"},   {SysRoutine::ABS, "abs"},
+      {SysRoutine::ORD, "ord"},         {SysRoutine::PRED, "pred"},   {SysRoutine::SUCC, "succ"},
+      {SysRoutine::CHR, "chr"}
+  };
   // TODO: bound checking
   return routine_to_string[routine];
 }
