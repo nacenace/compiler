@@ -37,7 +37,10 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       else if (value->getType()->isPointerTy()) {
         args.push_back(value);
       } else {
-        throw CodegenException("incompatible type in write(): expected char, integer, real");
+        if(routine->routine == SysRoutine::WRITE)
+          throw CodegenException("incompatible type in write(): expected char, integer, real");
+        else
+          throw CodegenException("incompatible type in writeln(): expected char, integer, real");
       }
       context.builder.CreateCall(printf_func, args);
     }
@@ -45,7 +48,39 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       context.builder.CreateCall(printf_func, context.builder.CreateGlobalStringPtr("\n"));
     }
     return nullptr;
-  } else {
+  } else if (routine->routine == SysRoutine::READ) {
+    auto char_ptr = context.builder.getInt8Ty()->getPointerTo();
+    auto scanf_type = llvm::FunctionType::get(context.builder.getInt32Ty(), char_ptr, true);
+    auto scanf_func = context.module->getOrInsertFunction("scanf", scanf_type);
+    for (auto &arg : args->children()) {
+      auto value = arg->codegen(context);
+      std::vector<llvm::Value *> args;
+      if (value->getType()->isIntegerTy(8)) {
+        args.push_back(context.builder.CreateGlobalStringPtr("%c"));
+        std::shared_ptr<Symbol> symbol = context.symbolTable.getGlobalSymbol(arg.name);
+        if (context.symbolTable.getGlobalSymbol(arg.name))
+          symbol = context.symbolTable.getLocalSymbol(arg.name);
+        args.push_back(symbol->get_llvmptr());
+      } else if (value->getType()->isIntegerTy()) {
+        args.push_back(context.builder.CreateGlobalStringPtr("%d"));
+        std::shared_ptr<Symbol> symbol = context.symbolTable.getGlobalSymbol(arg.name);
+        if (context.symbolTable.getGlobalSymbol(arg.name))
+          symbol = context.symbolTable.getLocalSymbol(arg.name);
+        args.push_back(symbol->get_llvmptr());
+      } else if (value->getType()->isDoubleTy()) {
+        args.push_back(context.builder.CreateGlobalStringPtr("%f"));
+        std::shared_ptr<Symbol> symbol = context.symbolTable.getGlobalSymbol(arg.name);
+        if (context.symbolTable.getGlobalSymbol(arg.name))
+          symbol = context.symbolTable.getLocalSymbol(arg.name);
+        args.push_back(symbol->get_llvmptr());
+      }
+      else {
+          throw CodegenException("incompatible type in read(): expected char, integer, real");
+      }
+      context.builder.CreateCall(scanf_func, args);
+    }
+    return nullptr;
+  } else{
     throw CodegenException("unsupported built-in routine: " + to_string(routine->routine));
   }
 }
