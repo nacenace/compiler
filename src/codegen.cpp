@@ -55,23 +55,21 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
     for (auto &arg : args->children()) {
       auto value = arg->codegen(context);
       std::vector<llvm::Value *> args;
+      auto name = cast_node<LeftValueExprNode>(arg)->name;
+      std::shared_ptr<Symbol> symbol = context.symbolTable.getGlobalSymbol(name);
+      if (context.symbolTable.getGlobalSymbol(name))
+        symbol = context.symbolTable.getLocalSymbol(name);
+      if(!symbol)
+        throw CodegenException("Use of undeclared identifier in read()");
+
       if (value->getType()->isIntegerTy(8)) {
         args.push_back(context.builder.CreateGlobalStringPtr("%c"));
-        std::shared_ptr<Symbol> symbol = context.symbolTable.getGlobalSymbol(arg.name);
-        if (context.symbolTable.getGlobalSymbol(arg.name))
-          symbol = context.symbolTable.getLocalSymbol(arg.name);
         args.push_back(symbol->get_llvmptr());
       } else if (value->getType()->isIntegerTy()) {
         args.push_back(context.builder.CreateGlobalStringPtr("%d"));
-        std::shared_ptr<Symbol> symbol = context.symbolTable.getGlobalSymbol(arg.name);
-        if (context.symbolTable.getGlobalSymbol(arg.name))
-          symbol = context.symbolTable.getLocalSymbol(arg.name);
         args.push_back(symbol->get_llvmptr());
       } else if (value->getType()->isDoubleTy()) {
         args.push_back(context.builder.CreateGlobalStringPtr("%f"));
-        std::shared_ptr<Symbol> symbol = context.symbolTable.getGlobalSymbol(arg.name);
-        if (context.symbolTable.getGlobalSymbol(arg.name))
-          symbol = context.symbolTable.getLocalSymbol(arg.name);
         args.push_back(symbol->get_llvmptr());
       }
       else {
