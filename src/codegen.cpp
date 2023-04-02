@@ -128,15 +128,7 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       auto value = arg->codegen(context);
       if (!value->getType()->isIntegerTy(8))
         throw CodegenException("incompatible type in ord(): expected char");
-      if(is_a_ptr_of<IdentifierNode>(arg)) {
-        auto node = cast_node<IdentifierNode>(arg);
-        return llvm::ConstantInt::getSigned(context.builder.getInt32Ty(),
-            llvm::cast<llvm::ConstantInt>(node->get_ptr(context))->getSExtValue());
-      }else if(is_a_ptr_of<CharNode>(arg)){
-        return llvm::ConstantInt::getSigned(context.builder.getInt32Ty(),
-                                            llvm::cast<llvm::ConstantInt>(value)->getSExtValue());
-      }else
-        throw CodegenException("error node type in ord(): expected IdentifierNode, CharNode");
+      return context.builder.CreateZExt(value, context.builder.getInt32Ty());
     }
     case SysRoutine::PRED:
       break;
