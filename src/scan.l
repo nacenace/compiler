@@ -59,7 +59,7 @@ NQUOTE [^']
     return ID;
 }
 
-'[^']*'      { yylval = make_node<StringNode>(yytext); return STRING; }
+'[^']*'             { yylval = make_node<StringNode>(yytext); return STRING; }
 
 "."                 return DOT;
 "("                 return LP;
