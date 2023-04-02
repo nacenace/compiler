@@ -7,6 +7,7 @@
 #include <llvm/IR/Verifier.h>
 
 #include <llvm/Support/Casting.h>
+#include <llvm/>
 // used by decl nodes
 #include <fmt/core.h>
 
@@ -16,65 +17,85 @@
 namespace spc {
 /* -------- syscall nodes -------- */
 llvm::Value *SysCallNode::codegen(CodegenContext &context) {
-  if (routine->routine == SysRoutine::WRITELN || routine->routine == SysRoutine::WRITE) {
-    auto char_ptr = context.builder.getInt8Ty()->getPointerTo();
-    auto printf_type = llvm::FunctionType::get(context.builder.getInt32Ty(), char_ptr, true);
-    auto printf_func = context.module->getOrInsertFunction("printf", printf_type);
-    for (auto &arg : args->children()) {
-      auto value = arg->codegen(context);
-      std::vector<llvm::Value *> args;
-      if (value->getType()->isIntegerTy(8)) {
-        args.push_back(context.builder.CreateGlobalStringPtr("%c"));
-        args.push_back(value);
-      } else if (value->getType()->isIntegerTy()) {
-        args.push_back(context.builder.CreateGlobalStringPtr("%d"));
-        args.push_back(value);
-      } else if (value->getType()->isDoubleTy()) {
-        args.push_back(context.builder.CreateGlobalStringPtr("%f"));
-        args.push_back(value);
+  switch (routine->routine) {
+    case SysRoutine::WRITELN:
+    case SysRoutine::WRITE:
+    {
+      auto char_ptr = context.builder.getInt8Ty()->getPointerTo();
+      auto printf_type = llvm::FunctionType::get(context.builder.getInt32Ty(), char_ptr, true);
+      auto printf_func = context.module->getOrInsertFunction("printf", printf_type);
+      for (auto &arg : args->children()) {
+        auto value = arg->codegen(context);
+        std::vector<llvm::Value *> args;
+        if (value->getType()->isIntegerTy(8)) {
+          args.push_back(context.builder.CreateGlobalStringPtr("%c"));
+          args.push_back(value);
+        } else if (value->getType()->isIntegerTy()) {
+          args.push_back(context.builder.CreateGlobalStringPtr("%d"));
+          args.push_back(value);
+        } else if (value->getType()->isDoubleTy()) {
+          args.push_back(context.builder.CreateGlobalStringPtr("%f"));
+          args.push_back(value);
+        }
+        // Pascal pointers are not supported, so this is an LLVM global string pointer.
+        else if (value->getType()->isPointerTy()) {
+          args.push_back(value);
+        } else {
+          if (routine->routine == SysRoutine::WRITE)
+            throw CodegenException("incompatible type in write(): expected char, integer, real");
+          else
+            throw CodegenException("incompatible type in writeln(): expected char, integer, real");
+        }
+        context.builder.CreateRet(context.builder.CreateCall(printf_func, args));
       }
-      // Pascal pointers are not supported, so this is an LLVM global string pointer.
-      else if (value->getType()->isPointerTy()) {
-        args.push_back(value);
+      if (routine->routine == SysRoutine::WRITELN) {
+        context.builder.CreateRet(context.builder.CreateCall(printf_func, context.builder.CreateGlobalStringPtr("\n")));
+      }
+      return nullptr;
+    }
+
+    case SysRoutine::READ:
+    case SysRoutine::READLN:
+    {
+      auto char_ptr = context.builder.getInt8Ty()->getPointerTo();
+      auto scanf_type = llvm::FunctionType::get(context.builder.getInt32Ty(), char_ptr, true);
+      auto scanf_func = context.module->getOrInsertFunction("scanf", scanf_type);
+      for (auto &arg : args->children()) {
+        std::vector<llvm::Value *> args;
+        auto ptr = cast_node<IdentifierNode>(arg)->get_ptr(context);
+        if (ptr->getType()->getPointerElementType()->isIntegerTy(8)) {
+          args.push_back(context.builder.CreateGlobalStringPtr("%c"));
+          args.push_back(ptr);
+        } else if (ptr->getType()->getPointerElementType()->isIntegerTy()) {
+          args.push_back(context.builder.CreateGlobalStringPtr("%d"));
+          args.push_back(ptr);
+        } else if (ptr->getType()->getPointerElementType()->isDoubleTy()) {
+          args.push_back(context.builder.CreateGlobalStringPtr("%f"));
+          args.push_back(ptr);
+        } else {
+          if (routine->routine == SysRoutine::READ)
+            throw CodegenException("incompatible type in read(): expected char, integer, real");
+          else
+            throw CodegenException("incompatible type in readln(): expected char, integer, real");
+        }
+        context.builder.CreateRet(context.builder.CreateCall(scanf_func, args));
+      }
+      if (routine->routine == SysRoutine::READLN) {
+        /*auto getchar_type = llvm::FunctionType::get(context.builder.getInt32Ty(), false);
+        auto getchar_func = context.module->getOrInsertFunction("getchar", getchar_type);
+        llvm::Value* ret = context.builder.CreateCall(getchar_func);
+        while(){
+        }*/
       } else {
-        if(routine->routine == SysRoutine::WRITE)
-          throw CodegenException("incompatible type in write(): expected char, integer, real");
-        else
-          throw CodegenException("incompatible type in writeln(): expected char, integer, real");
+        throw CodegenException("unsupported built-in routine: " + to_string(routine->routine));
       }
-      context.builder.CreateCall(printf_func, args);
     }
-    if (routine->routine == SysRoutine::WRITELN) {
-      context.builder.CreateCall(printf_func, context.builder.CreateGlobalStringPtr("\n"));
-    }
-    return nullptr;
-  } else if (routine->routine == SysRoutine::READ) {
-    auto char_ptr = context.builder.getInt8Ty()->getPointerTo();
-    auto scanf_type = llvm::FunctionType::get(context.builder.getInt32Ty(), char_ptr, true);
-    auto scanf_func = context.module->getOrInsertFunction("scanf", scanf_type);
-    for (auto &arg : args->children()) {
-      auto value = arg->codegen(context);
-      std::vector<llvm::Value *> args;
-      auto ptr = cast_node<IdentifierNode>(arg)->get_ptr(context);
-      if (value->getType()->isIntegerTy(8)) {
-        args.push_back(context.builder.CreateGlobalStringPtr("%c"));
-        args.push_back(ptr);
-      } else if (value->getType()->isIntegerTy()) {
-        args.push_back(context.builder.CreateGlobalStringPtr("%d"));
-        args.push_back(ptr);
-      } else if (value->getType()->isDoubleTy()) {
-        args.push_back(context.builder.CreateGlobalStringPtr("%f"));
-        args.push_back(ptr);
-      }
-      else {
-          throw CodegenException("incompatible type in read(): expected char, integer, real");
-      }
-      context.builder.CreateCall(scanf_func, args);
-    }
-    return nullptr;
-  } else{
-    throw CodegenException("unsupported built-in routine: " + to_string(routine->routine));
+
+    default:
+      break;
   }
+
+  return nullptr;
 }
 
 /* -------- type nodes -------- */
