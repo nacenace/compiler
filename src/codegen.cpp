@@ -85,14 +85,25 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         llvm::Value* ret = context.builder.CreateCall(getchar_func);
         while(){
         }*/
-      } else {
-        throw CodegenException("unsupported built-in routine: " + to_string(routine->routine));
       }
       return nullptr;
     }
 
     case SysRoutine::SQRT:
-      break;
+    {
+      auto sqrt_type = llvm::FunctionType::get(context.builder.getDoubleTy(), context.builder.getDoubleTy(), false);
+      auto sqrt_func = context.module->getOrInsertFunction("sqrt", sqrt_type);
+      if(args->children().size() != 1)
+        throw CodegenException("no matching function for call to 'sqrt'");
+      auto arg = *args->children().begin();
+      auto value = arg->codegen(context);
+      if (!(value->getType()->isIntegerTy(32) || value->getType()->isDoubleTy())) {
+        throw CodegenException("incompatible type in sqrt(): expected integer, real");
+      }
+      std::vector<llvm::Value *> args;
+      args.push_back(arg->codegen(context));
+      return context.builder.CreateCall(sqrt_func, args);
+    }
     case SysRoutine::ABS:
       break;
     case SysRoutine::ORD:
@@ -105,9 +116,8 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       break;
 
     default:
-      break;
+      throw CodegenException("unsupported built-in routine: " + to_string(routine->routine));
   }
-
   return nullptr;
 }
 
