@@ -101,12 +101,14 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         throw CodegenException("incompatible type in sqrt(): expected integer, real");
       }
       std::vector<llvm::Value *> args;
-      args.push_back(arg->codegen(context));
+      if(value->getType()->isIntegerTy(32))
+        value = context.builder.CreateUIToFP(value,context.builder.getDoubleTy());
+      args.push_back(value);
       return context.builder.CreateCall(sqrt_func, args);
     }
     case SysRoutine::ABS:{
-      auto abs_type = llvm::FunctionType::get(context.builder.getDoubleTy(), context.builder.getDoubleTy(), false);
-      auto abs_func = context.module->getOrInsertFunction("abs", abs_type);
+      auto fabs_type = llvm::FunctionType::get(context.builder.getDoubleTy(), context.builder.getDoubleTy(), false);
+      auto fabs_func = context.module->getOrInsertFunction("fabs", fabs_type);
       if(args->children().size() != 1)
         throw CodegenException("no matching function for call to 'abs'");
       auto arg = *args->children().begin();
@@ -114,8 +116,10 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       if (!(value->getType()->isIntegerTy(32) || value->getType()->isDoubleTy()))
         throw CodegenException("incompatible type in abs(): expected integer, real");
       std::vector<llvm::Value *> args;
-      args.push_back(arg->codegen(context));
-      return context.builder.CreateCall(abs_func, args);
+      if(value->getType()->isIntegerTy(32))
+        value = context.builder.CreateUIToFP(value,context.builder.getDoubleTy());
+      args.push_back(value);
+      return context.builder.CreateCall(fabs_func, args);
     }
     case SysRoutine::ORD:{
       if(args->children().size() != 1)
