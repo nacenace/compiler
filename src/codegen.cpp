@@ -61,6 +61,7 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       auto scanf_func = context.module->getOrInsertFunction("scanf", scanf_type);
       for (auto &arg : args->children()) {
         std::vector<llvm::Value *> args;
+        /*添加空指针判断*/
         auto ptr = cast_node<IdentifierNode>(arg)->get_ptr(context);
         if (ptr->getType()->getPointerElementType()->isIntegerTy(8)) {
           args.push_back(context.builder.CreateGlobalStringPtr("%c"));
@@ -89,8 +90,7 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       return nullptr;
     }
 
-    case SysRoutine::SQRT:
-    {
+    case SysRoutine::SQRT:{
       auto sqrt_type = llvm::FunctionType::get(context.builder.getDoubleTy(), context.builder.getDoubleTy(), false);
       auto sqrt_func = context.module->getOrInsertFunction("sqrt", sqrt_type);
       if(args->children().size() != 1)
@@ -111,15 +111,29 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         throw CodegenException("no matching function for call to 'abs'");
       auto arg = *args->children().begin();
       auto value = arg->codegen(context);
-      if (!(value->getType()->isIntegerTy(32) || value->getType()->isDoubleTy())) {
+      if (!(value->getType()->isIntegerTy(32) || value->getType()->isDoubleTy()))
         throw CodegenException("incompatible type in abs(): expected integer, real");
-      }
       std::vector<llvm::Value *> args;
       args.push_back(arg->codegen(context));
       return context.builder.CreateCall(abs_func, args);
     }
-    case SysRoutine::ORD:
-      break;
+    case SysRoutine::ORD:{
+      if(args->children().size() != 1)
+        throw CodegenException("no matching function for call to 'ord'");
+      auto arg = *args->children().begin();
+      auto value = arg->codegen(context);
+      if (!value->getType()->isIntegerTy(8))
+        throw CodegenException("incompatible type in ord(): expected char");
+      if(is_a_ptr_of<IdentifierNode>(arg)) {
+        auto node = cast_node<IdentifierNode>(arg);
+        return llvm::ConstantInt::getSigned(context.builder.getInt32Ty(),
+            llvm::cast<llvm::ConstantInt>(node->get_ptr(context))->getSExtValue());
+      }else if(is_a_ptr_of<CharNode>(arg)){
+        return llvm::ConstantInt::getSigned(context.builder.getInt32Ty(),
+                                            llvm::cast<llvm::ConstantInt>(value)->getSExtValue());
+      }else
+        throw CodegenException("error node type in ord(): expected IdentifierNode, CharNode");
+    }
     case SysRoutine::PRED:
       break;
     case SysRoutine::SUCC:
@@ -244,7 +258,6 @@ llvm::Value *RealNode::codegen(CodegenContext &context) {
 llvm::Value *IntegerNode::codegen(CodegenContext &context) {
   auto *type = context.builder.getInt32Ty();
   return llvm::ConstantInt::getSigned(type, val);
-  ;
 }
 llvm::Value *CharNode::codegen(CodegenContext &context) { return context.builder.getInt8(static_cast<uint8_t>(val)); }
 
