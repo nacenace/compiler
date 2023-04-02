@@ -88,7 +88,21 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       } else {
         throw CodegenException("unsupported built-in routine: " + to_string(routine->routine));
       }
+      return nullptr;
     }
+
+    case SysRoutine::SQRT:
+      break;
+    case SysRoutine::ABS:
+      break;
+    case SysRoutine::ORD:
+      break;
+    case SysRoutine::PRED:
+      break;
+    case SysRoutine::SUCC:
+      break;
+    case SysRoutine::CHR:
+      break;
 
     default:
       break;
