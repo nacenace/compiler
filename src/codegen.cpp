@@ -104,8 +104,20 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       args.push_back(arg->codegen(context));
       return context.builder.CreateCall(sqrt_func, args);
     }
-    case SysRoutine::ABS:
-      break;
+    case SysRoutine::ABS:{
+      auto abs_type = llvm::FunctionType::get(context.builder.getDoubleTy(), context.builder.getDoubleTy(), false);
+      auto abs_func = context.module->getOrInsertFunction("abs", abs_type);
+      if(args->children().size() != 1)
+        throw CodegenException("no matching function for call to 'abs'");
+      auto arg = *args->children().begin();
+      auto value = arg->codegen(context);
+      if (!(value->getType()->isIntegerTy(32) || value->getType()->isDoubleTy())) {
+        throw CodegenException("incompatible type in abs(): expected integer, real");
+      }
+      std::vector<llvm::Value *> args;
+      args.push_back(arg->codegen(context));
+      return context.builder.CreateCall(abs_func, args);
+    }
     case SysRoutine::ORD:
       break;
     case SysRoutine::PRED:
