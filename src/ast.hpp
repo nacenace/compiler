@@ -46,6 +46,7 @@ struct ConstListNode;
 struct TypeDefNode;
 struct TypeListNode;
 // 结构语句相关
+struct NameListNode;
 struct RoutineCallNode;
 struct HeadListNode;
 struct RoutineNode;
@@ -355,12 +356,11 @@ enum class SysRoutine {
 };
 
 inline std::string to_string(SysRoutine routine) {
-  std::map<SysRoutine, std::string> routine_to_string{
-      {SysRoutine::WRITELN, "writeln"}, {SysRoutine::WRITE, "write"}, {SysRoutine::READ, "read"},
-      {SysRoutine::READLN, "readln"},   {SysRoutine::SQRT, "sqrt"},   {SysRoutine::ABS, "abs"},
-      {SysRoutine::ORD, "ord"},         {SysRoutine::PRED, "pred"},   {SysRoutine::SUCC, "succ"},
-      {SysRoutine::CHR, "chr"}
-  };
+  std::map<SysRoutine, std::string> routine_to_string{{SysRoutine::WRITELN, "writeln"}, {SysRoutine::WRITE, "write"},
+                                                      {SysRoutine::READ, "read"},       {SysRoutine::READLN, "readln"},
+                                                      {SysRoutine::SQRT, "sqrt"},       {SysRoutine::ABS, "abs"},
+                                                      {SysRoutine::ORD, "ord"},         {SysRoutine::PRED, "pred"},
+                                                      {SysRoutine::SUCC, "succ"},       {SysRoutine::CHR, "chr"}};
   // TODO: bound checking
   return routine_to_string[routine];
 }
@@ -489,6 +489,8 @@ struct TypeListNode : public DummyNode {
   bool should_have_children() const override { return true; }
 };
 
+struct NameListNode : public DummyNode {};
+
 struct RoutineCallNode : public DummyNode {
  public:
   /// 函数名
@@ -539,9 +541,12 @@ struct HeadListNode : public DummyNode {
 /// 过程语义节点
 struct RoutineNode : public DummyNode {
  public:
+  using NodePtr = std::shared_ptr<AbstractNode>;
   std::shared_ptr<IdentifierNode> name;
+  std::shared_ptr<HeadListNode> head_list;
 
-  RoutineNode(const std::shared_ptr<AbstractNode> &name) : name(cast_node<IdentifierNode>(name)) {}
+  RoutineNode(const NodePtr &name, const NodePtr &head_list)
+      : name(cast_node<IdentifierNode>(name)), head_list(cast_node<HeadListNode>(head_list)) {}
 
  protected:
   RoutineNode() = default;
@@ -557,7 +562,8 @@ struct ProgramNode : public RoutineNode {
 
  protected:
   std::string json_head() const override {
-    return std::string{"\"type\": \"Program\", \"name\": "} + this->name->to_json();
+    return std::string{"\"type\": \"Program\", \"name\": "} + this->name->to_json() +
+           ", \"head\": " + this->head_list->to_json();
   }
 };
 

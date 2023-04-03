@@ -18,8 +18,7 @@ namespace spc {
 llvm::Value *SysCallNode::codegen(CodegenContext &context) {
   switch (routine->routine) {
     case SysRoutine::WRITELN:
-    case SysRoutine::WRITE:
-    {
+    case SysRoutine::WRITE: {
       auto char_ptr = context.builder.getInt8Ty()->getPointerTo();
       auto printf_type = llvm::FunctionType::get(context.builder.getInt32Ty(), char_ptr, true);
       auto printf_func = context.module->getOrInsertFunction("printf", printf_type);
@@ -54,8 +53,7 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
     }
 
     case SysRoutine::READ:
-    case SysRoutine::READLN:
-    {
+    case SysRoutine::READLN: {
       auto char_ptr = context.builder.getInt8Ty()->getPointerTo();
       auto scanf_type = llvm::FunctionType::get(context.builder.getInt32Ty(), char_ptr, true);
       auto scanf_func = context.module->getOrInsertFunction("scanf", scanf_type);
@@ -63,8 +61,7 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         std::vector<llvm::Value *> args;
         /*添加空指针判断*/
         auto ptr = cast_node<IdentifierNode>(arg)->get_ptr(context);
-        if(ptr == nullptr)
-          throw CodegenException("identifier not found: " + cast_node<IdentifierNode>(arg)->name);
+        if (ptr == nullptr) throw CodegenException("identifier not found: " + cast_node<IdentifierNode>(arg)->name);
         if (ptr->getType()->getPointerElementType()->isIntegerTy(8)) {
           args.push_back(context.builder.CreateGlobalStringPtr("%c"));
           args.push_back(ptr);
@@ -86,13 +83,13 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         context.builder.CreateCall(scanf_func, context.builder.CreateGlobalStringPtr("%*[^\n]"));
         auto getchar_type = llvm::FunctionType::get(context.builder.getInt32Ty(), false);
         auto getchar_func = context.module->getOrInsertFunction("getchar", getchar_type);
-        context.builder.CreateCall(getchar_func);      }
+        context.builder.CreateCall(getchar_func);
+      }
       return nullptr;
     }
 
-    case SysRoutine::SQRT:{
-      if(args->children().size() != 1)
-        throw CodegenException("no matching function for call to 'sqrt'");
+    case SysRoutine::SQRT: {
+      if (args->children().size() != 1) throw CodegenException("no matching function for call to 'sqrt'");
       auto sqrt_type = llvm::FunctionType::get(context.builder.getDoubleTy(), context.builder.getDoubleTy(), false);
       auto sqrt_func = context.module->getOrInsertFunction("sqrt", sqrt_type);
       auto arg = *args->children().begin();
@@ -101,14 +98,12 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         throw CodegenException("incompatible type in sqrt(): expected integer, real");
       }
       std::vector<llvm::Value *> args;
-      if(value->getType()->isIntegerTy(32))
-        value = context.builder.CreateUIToFP(value,context.builder.getDoubleTy());
+      if (value->getType()->isIntegerTy(32)) value = context.builder.CreateUIToFP(value, context.builder.getDoubleTy());
       args.push_back(value);
       return context.builder.CreateCall(sqrt_func, args);
     }
-    case SysRoutine::ABS:{
-      if(args->children().size() != 1)
-        throw CodegenException("no matching function for call to 'abs'");
+    case SysRoutine::ABS: {
+      if (args->children().size() != 1) throw CodegenException("no matching function for call to 'abs'");
       auto fabs_type = llvm::FunctionType::get(context.builder.getDoubleTy(), context.builder.getDoubleTy(), false);
       auto fabs_func = context.module->getOrInsertFunction("fabs", fabs_type);
       auto arg = *args->children().begin();
@@ -116,52 +111,48 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       if (!(value->getType()->isIntegerTy(32) || value->getType()->isDoubleTy()))
         throw CodegenException("incompatible type in abs(): expected integer, real");
       std::vector<llvm::Value *> args;
-      if(value->getType()->isIntegerTy(32))
-        value = context.builder.CreateUIToFP(value,context.builder.getDoubleTy());
+      if (value->getType()->isIntegerTy(32)) value = context.builder.CreateUIToFP(value, context.builder.getDoubleTy());
       args.push_back(value);
       return context.builder.CreateCall(fabs_func, args);
     }
-    case SysRoutine::ORD:{
-      if(args->children().size() != 1)
-        throw CodegenException("no matching function for call to 'ord'");
+    case SysRoutine::ORD: {
+      if (args->children().size() != 1) throw CodegenException("no matching function for call to 'ord'");
       auto arg = *args->children().begin();
       auto value = arg->codegen(context);
-      if (!value->getType()->isIntegerTy(8))
-        throw CodegenException("incompatible type in ord(): expected char");
+      if (!value->getType()->isIntegerTy(8)) throw CodegenException("incompatible type in ord(): expected char");
       return context.builder.CreateZExt(value, context.builder.getInt32Ty());
     }
-    case SysRoutine::PRED:{
-    //只支持字符和整数
-        if (args->children().size() != 1) throw CodegenException("no matching function for call to 'pred'");
-        auto arg = *args->children().begin();
-        auto value = arg->codegen(context);
-        if (!(value->getType()->isIntegerTy(8) || value->getType()->isIntegerTy(32)))
-          throw CodegenException("incompatible type in pred(): expected char, int");
-        if (value->getType()->isIntegerTy(32))
-          return context.builder.CreateSub(value, context.builder.getInt32(1));
-        else
-          return context.builder.CreateSub(value, context.builder.getInt8(1));
-      }
-    case SysRoutine::SUCC:{
-        //只支持字符和整数
-        if (args->children().size() != 1) throw CodegenException("no matching function for call to 'succ'");
-        auto arg = *args->children().begin();
-        auto value = arg->codegen(context);
-        if (!(value->getType()->isIntegerTy(8) || value->getType()->isIntegerTy(32)))
-          throw CodegenException("incompatible type in succ(): expected char, int");
-        if (value->getType()->isIntegerTy(32))
-          return context.builder.CreateAdd(value, context.builder.getInt32(1));
-        else
-          return context.builder.CreateAdd(value, context.builder.getInt8(1));
-      }
-    case SysRoutine::CHR:{
-        if (args->children().size() != 1) throw CodegenException("no matching function for call to 'chr'");
-        auto arg = *args->children().begin();
-        auto value = arg->codegen(context);
-        if (!value->getType()->isIntegerTy(32))
-          throw CodegenException("incompatible type in chr(): expected int");
-        return context.builder.CreateTrunc(value, context.builder.getInt8Ty());
-      }
+    case SysRoutine::PRED: {
+      //只支持字符和整数
+      if (args->children().size() != 1) throw CodegenException("no matching function for call to 'pred'");
+      auto arg = *args->children().begin();
+      auto value = arg->codegen(context);
+      if (!(value->getType()->isIntegerTy(8) || value->getType()->isIntegerTy(32)))
+        throw CodegenException("incompatible type in pred(): expected char, int");
+      if (value->getType()->isIntegerTy(32))
+        return context.builder.CreateSub(value, context.builder.getInt32(1));
+      else
+        return context.builder.CreateSub(value, context.builder.getInt8(1));
+    }
+    case SysRoutine::SUCC: {
+      //只支持字符和整数
+      if (args->children().size() != 1) throw CodegenException("no matching function for call to 'succ'");
+      auto arg = *args->children().begin();
+      auto value = arg->codegen(context);
+      if (!(value->getType()->isIntegerTy(8) || value->getType()->isIntegerTy(32)))
+        throw CodegenException("incompatible type in succ(): expected char, int");
+      if (value->getType()->isIntegerTy(32))
+        return context.builder.CreateAdd(value, context.builder.getInt32(1));
+      else
+        return context.builder.CreateAdd(value, context.builder.getInt8(1));
+    }
+    case SysRoutine::CHR: {
+      if (args->children().size() != 1) throw CodegenException("no matching function for call to 'chr'");
+      auto arg = *args->children().begin();
+      auto value = arg->codegen(context);
+      if (!value->getType()->isIntegerTy(32)) throw CodegenException("incompatible type in chr(): expected int");
+      return context.builder.CreateTrunc(value, context.builder.getInt8Ty());
+    }
     default:
       throw CodegenException("unsupported built-in routine: " + to_string(routine->routine));
   }
@@ -197,12 +188,12 @@ llvm::Type *TypeNode::get_llvm_type(CodegenContext &context) const {
 
 /* -------- routine nodes -------- */
 llvm::Value *ProgramNode::codegen(CodegenContext &context) {
-  /*
   context.is_subroutine = false;
   head_list->const_list->codegen(context);
   head_list->type_list->codegen(context);
   head_list->var_list->codegen(context);
 
+  /*
   context.is_subroutine = true;
   head_list->subroutine_list->codegen(context);
   */
@@ -289,10 +280,7 @@ llvm::Value *ConstListNode::codegen(CodegenContext &context) {
 }
 llvm::Value *ConstDeclNode::codegen(CodegenContext &context) {
   if (context.is_subroutine) {
-    //
     bool success = context.symbolTable.addLocalSymbol(name->name, value->type, true);
-    // auto *local = context.builder.CreateAlloca(value->get_llvm_type(context));
-    // auto success = context.set_local(name->name, local);
     if (!success) throw CodegenException("duplicate identifier in const section: " + name->name);
     auto local = context.symbolTable.getLocalSymbol(name->name);
     context.builder.CreateStore(value->codegen(context), local->get_llvmptr());
