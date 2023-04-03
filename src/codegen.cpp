@@ -129,10 +129,30 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         throw CodegenException("incompatible type in ord(): expected char");
       return context.builder.CreateZExt(value, context.builder.getInt32Ty());
     }
-    case SysRoutine::PRED:
-      //只支持字符和整数
-    case SysRoutine::SUCC:
-      break;
+    case SysRoutine::PRED:{
+    //只支持字符和整数
+        if (args->children().size() != 1) throw CodegenException("no matching function for call to 'pred'");
+        auto arg = *args->children().begin();
+        auto value = arg->codegen(context);
+        if (!(value->getType()->isIntegerTy(8) || value->getType()->isIntegerTy(32)))
+          throw CodegenException("incompatible type in pred(): expected char, int");
+        if (value->getType()->isIntegerTy(32))
+          return context.builder.CreateSub(value, llvm::ConstantInt::get(context.builder.getInt32Ty(), 1, true));
+        else
+          return context.builder.CreateSub(value, llvm::ConstantInt::get(context.builder.getInt8Ty(), 1, false));
+      }
+    case SysRoutine::SUCC:{
+        //只支持字符和整数
+        if (args->children().size() != 1) throw CodegenException("no matching function for call to 'succ'");
+        auto arg = *args->children().begin();
+        auto value = arg->codegen(context);
+        if (!(value->getType()->isIntegerTy(8) || value->getType()->isIntegerTy(32)))
+          throw CodegenException("incompatible type in succ(): expected char, int");
+        if (value->getType()->isIntegerTy(32))
+          return context.builder.CreateAdd(value, llvm::ConstantInt::get(context.builder.getInt32Ty(), 1));
+        else
+          return context.builder.CreateAdd(value, llvm::ConstantInt::get(context.builder.getInt8Ty(), 1));
+      }
     case SysRoutine::CHR:
       break;
 
