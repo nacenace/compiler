@@ -81,11 +81,8 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         context.builder.CreateRet(context.builder.CreateCall(scanf_func, args));
       }
       if (routine->routine == SysRoutine::READLN) {
-        /*auto getchar_type = llvm::FunctionType::get(context.builder.getInt32Ty(), false);
-        auto getchar_func = context.module->getOrInsertFunction("getchar", getchar_type);
-        llvm::Value* ret = context.builder.CreateCall(getchar_func);
-        while(){
-        }*/
+        context.builder.CreateRet(context.builder.CreateCall(scanf_func,context.builder.CreateGlobalStringPtr("[^\\n\\r]*")));
+        context.builder.CreateRet(context.builder.CreateCall(scanf_func,context.builder.CreateGlobalStringPtr("[\\r]？[\\n]")));
       }
       return nullptr;
     }
