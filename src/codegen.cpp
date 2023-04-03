@@ -188,12 +188,12 @@ llvm::Type *TypeNode::get_llvm_type(CodegenContext &context) const {
 
 /* -------- routine nodes -------- */
 llvm::Value *ProgramNode::codegen(CodegenContext &context) {
-  /*
   context.is_subroutine = false;
   head_list->const_list->codegen(context);
   head_list->type_list->codegen(context);
   head_list->var_list->codegen(context);
 
+  /*
   context.is_subroutine = true;
   head_list->subroutine_list->codegen(context);
   */
@@ -280,10 +280,7 @@ llvm::Value *ConstListNode::codegen(CodegenContext &context) {
 }
 llvm::Value *ConstDeclNode::codegen(CodegenContext &context) {
   if (context.is_subroutine) {
-    //
     bool success = context.symbolTable.addLocalSymbol(name->name, value->type, true);
-    // auto *local = context.builder.CreateAlloca(value->get_llvm_type(context));
-    // auto success = context.set_local(name->name, local);
     if (!success) throw CodegenException("duplicate identifier in const section: " + name->name);
     auto local = context.symbolTable.getLocalSymbol(name->name);
     context.builder.CreateStore(value->codegen(context), local->get_llvmptr());
