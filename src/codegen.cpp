@@ -63,6 +63,8 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         std::vector<llvm::Value *> args;
         /*添加空指针判断*/
         auto ptr = cast_node<IdentifierNode>(arg)->get_ptr(context);
+        if(ptr == nullptr)
+          throw CodegenException("identifier not found: " + cast_node<IdentifierNode>(arg)->name);
         if (ptr->getType()->getPointerElementType()->isIntegerTy(8)) {
           args.push_back(context.builder.CreateGlobalStringPtr("%c"));
           args.push_back(ptr);
@@ -88,10 +90,10 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
     }
 
     case SysRoutine::SQRT:{
-      auto sqrt_type = llvm::FunctionType::get(context.builder.getDoubleTy(), context.builder.getDoubleTy(), false);
-      auto sqrt_func = context.module->getOrInsertFunction("sqrt", sqrt_type);
       if(args->children().size() != 1)
         throw CodegenException("no matching function for call to 'sqrt'");
+      auto sqrt_type = llvm::FunctionType::get(context.builder.getDoubleTy(), context.builder.getDoubleTy(), false);
+      auto sqrt_func = context.module->getOrInsertFunction("sqrt", sqrt_type);
       auto arg = *args->children().begin();
       auto value = arg->codegen(context);
       if (!(value->getType()->isIntegerTy(32) || value->getType()->isDoubleTy())) {
@@ -104,10 +106,10 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       return context.builder.CreateCall(sqrt_func, args);
     }
     case SysRoutine::ABS:{
-      auto fabs_type = llvm::FunctionType::get(context.builder.getDoubleTy(), context.builder.getDoubleTy(), false);
-      auto fabs_func = context.module->getOrInsertFunction("fabs", fabs_type);
       if(args->children().size() != 1)
         throw CodegenException("no matching function for call to 'abs'");
+      auto fabs_type = llvm::FunctionType::get(context.builder.getDoubleTy(), context.builder.getDoubleTy(), false);
+      auto fabs_func = context.module->getOrInsertFunction("fabs", fabs_type);
       auto arg = *args->children().begin();
       auto value = arg->codegen(context);
       if (!(value->getType()->isIntegerTy(32) || value->getType()->isDoubleTy()))
@@ -128,7 +130,7 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       return context.builder.CreateZExt(value, context.builder.getInt32Ty());
     }
     case SysRoutine::PRED:
-      break;
+      //只支持字符和整数
     case SysRoutine::SUCC:
       break;
     case SysRoutine::CHR:
