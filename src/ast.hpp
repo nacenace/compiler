@@ -46,6 +46,7 @@ struct ConstListNode;
 struct TypeDefNode;
 struct TypeListNode;
 // 结构语句相关
+struct NameListNode;
 struct RoutineCallNode;
 struct HeadListNode;
 struct RoutineNode;
@@ -355,12 +356,11 @@ enum class SysRoutine {
 };
 
 inline std::string to_string(SysRoutine routine) {
-  std::map<SysRoutine, std::string> routine_to_string{
-      {SysRoutine::WRITELN, "writeln"}, {SysRoutine::WRITE, "write"}, {SysRoutine::READ, "read"},
-      {SysRoutine::READLN, "readln"},   {SysRoutine::SQRT, "sqrt"},   {SysRoutine::ABS, "abs"},
-      {SysRoutine::ORD, "ord"},         {SysRoutine::PRED, "pred"},   {SysRoutine::SUCC, "succ"},
-      {SysRoutine::CHR, "chr"}
-  };
+  std::map<SysRoutine, std::string> routine_to_string{{SysRoutine::WRITELN, "writeln"}, {SysRoutine::WRITE, "write"},
+                                                      {SysRoutine::READ, "read"},       {SysRoutine::READLN, "readln"},
+                                                      {SysRoutine::SQRT, "sqrt"},       {SysRoutine::ABS, "abs"},
+                                                      {SysRoutine::ORD, "ord"},         {SysRoutine::PRED, "pred"},
+                                                      {SysRoutine::SUCC, "succ"},       {SysRoutine::CHR, "chr"}};
   // TODO: bound checking
   return routine_to_string[routine];
 }
@@ -488,6 +488,8 @@ struct TypeListNode : public DummyNode {
 
   bool should_have_children() const override { return true; }
 };
+
+struct NameListNode : public DummyNode {};
 
 struct RoutineCallNode : public DummyNode {
  public:
