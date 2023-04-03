@@ -137,9 +137,9 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         if (!(value->getType()->isIntegerTy(8) || value->getType()->isIntegerTy(32)))
           throw CodegenException("incompatible type in pred(): expected char, int");
         if (value->getType()->isIntegerTy(32))
-          return context.builder.CreateSub(value, llvm::ConstantInt::get(context.builder.getInt32Ty(), 1, true));
+          return context.builder.CreateSub(value, context.builder.getInt32(1));
         else
-          return context.builder.CreateSub(value, llvm::ConstantInt::get(context.builder.getInt8Ty(), 1, false));
+          return context.builder.CreateSub(value, context.builder.getInt8(1));
       }
     case SysRoutine::SUCC:{
         //只支持字符和整数
@@ -149,13 +149,18 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         if (!(value->getType()->isIntegerTy(8) || value->getType()->isIntegerTy(32)))
           throw CodegenException("incompatible type in succ(): expected char, int");
         if (value->getType()->isIntegerTy(32))
-          return context.builder.CreateAdd(value, llvm::ConstantInt::get(context.builder.getInt32Ty(), 1));
+          return context.builder.CreateAdd(value, context.builder.getInt32(1));
         else
-          return context.builder.CreateAdd(value, llvm::ConstantInt::get(context.builder.getInt8Ty(), 1));
+          return context.builder.CreateAdd(value, context.builder.getInt8(1));
       }
-    case SysRoutine::CHR:
-      break;
-
+    case SysRoutine::CHR:{
+        if (args->children().size() != 1) throw CodegenException("no matching function for call to 'chr'");
+        auto arg = *args->children().begin();
+        auto value = arg->codegen(context);
+        if (!value->getType()->isIntegerTy(32))
+          throw CodegenException("incompatible type in chr(): expected int");
+        return context.builder.CreateTrunc(value, context.builder.getInt8Ty());
+      }
     default:
       throw CodegenException("unsupported built-in routine: " + to_string(routine->routine));
   }
