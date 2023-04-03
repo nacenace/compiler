@@ -562,7 +562,8 @@ struct ProgramNode : public RoutineNode {
 
  protected:
   std::string json_head() const override {
-    return std::string{"\"type\": \"Program\", \"name\": "} + this->name->to_json();
+    return std::string{"\"type\": \"Program\", \"name\": "} + this->name->to_json() +
+           ", \"head\": " + this->head_list->to_json();
   }
 };
 
