@@ -541,9 +541,12 @@ struct HeadListNode : public DummyNode {
 /// 过程语义节点
 struct RoutineNode : public DummyNode {
  public:
+  using NodePtr = std::shared_ptr<AbstractNode>;
   std::shared_ptr<IdentifierNode> name;
+  std::shared_ptr<HeadListNode> head_list;
 
-  RoutineNode(const std::shared_ptr<AbstractNode> &name) : name(cast_node<IdentifierNode>(name)) {}
+  RoutineNode(const NodePtr &name, const NodePtr &head_list)
+      : name(cast_node<IdentifierNode>(name)), head_list(cast_node<HeadListNode>(head_list)) {}
 
  protected:
   RoutineNode() = default;
