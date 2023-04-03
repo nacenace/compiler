@@ -45,10 +45,10 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
           else
             throw CodegenException("incompatible type in writeln(): expected char, integer, real");
         }
-        context.builder.CreateRet(context.builder.CreateCall(printf_func, args));
+        context.builder.CreateCall(printf_func, args);
       }
       if (routine->routine == SysRoutine::WRITELN) {
-        context.builder.CreateRet(context.builder.CreateCall(printf_func, context.builder.CreateGlobalStringPtr("\n")));
+        context.builder.CreateCall(printf_func, context.builder.CreateGlobalStringPtr("\n"));
       }
       return nullptr;
     }
@@ -80,11 +80,11 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
           else
             throw CodegenException("incompatible type in readln(): expected char, integer, real");
         }
-        context.builder.CreateRet(context.builder.CreateCall(scanf_func, args));
+        context.builder.CreateCall(scanf_func, args);
       }
       if (routine->routine == SysRoutine::READLN) {
-        context.builder.CreateRet(context.builder.CreateCall(scanf_func,context.builder.CreateGlobalStringPtr("[^\\n\\r]*")));
-        context.builder.CreateRet(context.builder.CreateCall(scanf_func,context.builder.CreateGlobalStringPtr("[\\r]？[\\n]")));
+        context.builder.CreateCall(scanf_func,context.builder.CreateGlobalStringPtr("[^\\n\\r]*"));
+        context.builder.CreateCall(scanf_func,context.builder.CreateGlobalStringPtr("[\\r]？[\\n]"));
       }
       return nullptr;
     }
