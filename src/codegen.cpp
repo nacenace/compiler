@@ -32,7 +32,7 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
           args.push_back(context.builder.CreateGlobalStringPtr("%d"));
           args.push_back(value);
         } else if (value->getType()->isDoubleTy()) {
-          args.push_back(context.builder.CreateGlobalStringPtr("%f"));
+          args.push_back(context.builder.CreateGlobalStringPtr("%lf"));
           args.push_back(value);
         }
         // Pascal pointers are not supported, so this is an LLVM global string pointer.
@@ -69,7 +69,7 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
           args.push_back(context.builder.CreateGlobalStringPtr("%d"));
           args.push_back(ptr);
         } else if (ptr->getType()->getPointerElementType()->isDoubleTy()) {
-          args.push_back(context.builder.CreateGlobalStringPtr("%f"));
+          args.push_back(context.builder.CreateGlobalStringPtr("%lf"));
           args.push_back(ptr);
         } else {
           if (routine->routine == SysRoutine::READ)
