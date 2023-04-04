@@ -201,10 +201,12 @@ struct StringTypeNode : public TypeNode {
 
 struct ArrayTypeNode : public TypeNode {
  public:
+  Type elementType;
   int dimension;
   //存储各维度的上下界，非整数形式的上下界转换为整数存储
   std::vector<std::pair<int, int>> bounds;
-  ArrayTypeNode(int dimension, std::vector<std::pair<int, int>> bounds) : dimension(dimension), bounds(bounds){
+  ArrayTypeNode(Type elementType, int dimension, std::vector<std::pair<int, int>> bounds)
+      : elementType(elementType), dimension(dimension), bounds(bounds){
     type = Type::ARRAY;
   }
   virtual std::string json_head() const override;
