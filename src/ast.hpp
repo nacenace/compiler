@@ -13,6 +13,7 @@
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
+#include <vector>
 
 namespace spc {
 // 顶层类
@@ -26,6 +27,7 @@ struct IdentifierNode;
 struct TypeNode;
 struct SimpleTypeNode;
 struct StringTypeNode;
+struct ArrayTypeNode;
 struct ConstValueNode;
 // 字面量相关
 struct StringNode;
@@ -199,7 +201,12 @@ struct StringTypeNode : public TypeNode {
 
 struct ArrayTypeNode : public TypeNode {
  public:
-  ArrayTypeNode() { type = Type::ARRAY; }
+  int dimension;
+  //存储各维度的上下界，非整数形式的上下界转换为整数存储
+  std::vector<std::pair<int, int>> bounds;
+  ArrayTypeNode(int dimension, std::vector<std::pair<int, int>> bounds) : dimension(dimension), bounds(bounds){
+    type = Type::ARRAY;
+  }
   virtual std::string json_head() const override;
   virtual  bool should_have_children() const override { return false; }
 };
