@@ -168,7 +168,8 @@ enum class Type {
   BOOLEN,
   INTEGER,
   REAL,
-  CHAR
+  CHAR,
+  ARRAY
 };
 
 std::string type2string(Type type);
@@ -194,6 +195,13 @@ struct StringTypeNode : public TypeNode {
   StringTypeNode() { type = Type::STRING; }
   virtual std::string json_head() const override;
   virtual bool should_have_children() const override { return false; }
+};
+
+struct ArrayTypeNode : public TypeNode {
+ public:
+  ArrayTypeNode() { type = Type::ARRAY; }
+  virtual std::string json_head() const override;
+  virtual  bool should_have_children() const override { return false; }
 };
 
 struct ConstValueNode : public ExprNode {

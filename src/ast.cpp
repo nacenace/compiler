@@ -45,8 +45,8 @@ std::string spc::type2string(Type type) {
       {Type::INTEGER, "integer"},
       {Type::REAL, "real"},
       {Type::BOOLEN, "boolen"},
-      {Type::CHAR, "char"}
-
+      {Type::CHAR, "char"},
+      {Type::ARRAY, "array"}
   };
   return type_to_string.at(type);
 }
@@ -56,5 +56,9 @@ std::string SimpleTypeNode::json_head() const {
 }
 
 std::string StringTypeNode::json_head() const {
+  return fmt::format("\"type\": \"Type\", \"name\":\"{}\"", type2string(this->type));
+}
+
+std::string ArrayTypeNode::json_head() const {
   return fmt::format("\"type\": \"Type\", \"name\":\"{}\"", type2string(this->type));
 }
