@@ -174,8 +174,8 @@ static llvm::Type *llvm_type(Type type, CodegenContext &context) {
       return nullptr;
   }
 }
-static llvm::Type *llvm_type(TypeNode *node, int length, CodegenContext &context) {
-  return llvm::ArrayType::get(llvm_type(dynamic_cast<SimpleTypeNode *>(node)->type, context), length);
+static llvm::Type *llvm_type(Type type, int length, CodegenContext &context) {
+  return llvm::ArrayType::get(llvm_type(type, context), length);
 }
 llvm::Type *ConstValueNode::get_llvm_type(CodegenContext &context) const { return this->type->get_llvm_type(context); }
 
@@ -183,8 +183,8 @@ llvm::Type *TypeNode::get_llvm_type(CodegenContext &context) const {
   if (auto *simple_type = dynamic_cast<const SimpleTypeNode *>(this)) {
     return llvm_type(simple_type->type, context);
   }else if (auto *array_type = dynamic_cast<const ArrayTypeNode *>(this)){
-    auto length = array_type->bounds.cbegin()->second - array_type->bounds.cbegin()->first;
-    return llvm_type(array_type->elementType.get(), length, context);
+    auto length = array_type->bounds.second - array_type->bounds.first;
+    return llvm_type(array_type->elementType->type, length, context);
   }
 
   throw CodegenException("unsupported type: " + type2string(type));

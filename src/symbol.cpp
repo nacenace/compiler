@@ -55,7 +55,7 @@ bool SymbolTable::addGlobalSymbol(string name, shared_ptr<TypeNode> type, llvm::
       constant = (initializer == nullptr) ? llvm::ConstantFP::get(llvmtype, 0) : initializer;
       break;
     case llvm::Type::ArrayTyID:
-      constant=llvm::ConstantAggregateZero::get(cast_node<ArrayTypeNode>(type)->elementType.get_llvm_type(context));
+      constant = llvm::ConstantAggregateZero::get(cast_node<ArrayTypeNode>(type)->elementType->get_llvm_type(context));
       break;
         /*
     case llvm::Type::StructTyID:
