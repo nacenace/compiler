@@ -239,6 +239,10 @@ llvm::Value *IdentifierNode::get_ptr(CodegenContext &context) {
 
 llvm::Value *IdentifierNode::codegen(CodegenContext &context) { return context.builder.CreateLoad(get_ptr(context)); }
 
+llvm::Value *ArrayRefNode::codegen(CodegenContext &context) {
+  return context.builder.CreateLoad(context.builder.CreateGEP(get_ptr(context),context.builder.getInt32(index)));
+}
+
 /* -------- stmt nodes -------- */
 llvm::Value *AssignStmtNode::codegen(CodegenContext &context) {
   auto assignee = cast_node<LeftValueExprNode>(this->lhs);

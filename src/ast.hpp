@@ -160,7 +160,18 @@ struct IdentifierNode : public LeftValueExprNode {
   bool should_have_children() const override { return false; }
 };
 
-struct IdentifierNode;
+struct ArrayRefNode : public IdentifierNode{
+ public:
+  int index;
+  explicit ArrayRefNode(const char *c, const int index) : IdentifierNode(c), index(index) {}
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override {
+    return std::string{"\"type\": \"ArrayRefNode\", \"name\": \""} + this->name + "\"";
+  }
+};
 
 enum class Type {
   /// 未定义
@@ -602,7 +613,7 @@ struct AssignStmtNode : public StmtNode {
   AssignStmtNode(const NodePtr &lhs, const NodePtr &rhs)
       : lhs(cast_node<ExprNode>(lhs)), rhs(cast_node<ExprNode>(rhs)) {
     assert(is_a_ptr_of<IdentifierNode>(lhs)
-           /* || is_a_ptr_of<ArrayRefNode>(lhs) || is_a_ptr_of<RecordRefNode>(lhs) */);
+            || is_a_ptr_of<ArrayRefNode>(lhs) /* || is_a_ptr_of<RecordRefNode>(lhs) */);
   }
 
   llvm::Value *codegen(CodegenContext &context) override;
