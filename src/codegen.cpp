@@ -12,6 +12,7 @@
 
 #include "context.hpp"
 #include "symbol.hpp"
+#include "ast.hpp"
 
 namespace spc {
 /* -------- syscall nodes -------- */
@@ -25,18 +26,21 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
       for (auto &arg : args->children()) {
         auto value = arg->codegen(context);
         std::vector<llvm::Value *> args;
-        if (value->getType()->isIntegerTy(8)) {
+        auto type = value->getType();
+        if (type->isArrayTy())
+          type = cast_node<ArrayRefNode>(arg)->get_element_type(context);
+        if (type->isIntegerTy(8)) {
           args.push_back(context.builder.CreateGlobalStringPtr("%c"));
           args.push_back(value);
-        } else if (value->getType()->isIntegerTy()) {
+        } else if (type->isIntegerTy()) {
           args.push_back(context.builder.CreateGlobalStringPtr("%d"));
           args.push_back(value);
-        } else if (value->getType()->isDoubleTy()) {
+        } else if (type->isDoubleTy()) {
           args.push_back(context.builder.CreateGlobalStringPtr("%lf"));
           args.push_back(value);
         }
         // Pascal pointers are not supported, so this is an LLVM global string pointer.
-        else if (value->getType()->isPointerTy()) {
+        else if (type->isPointerTy()) {
           args.push_back(value);
         } else {
           if (routine->routine == SysRoutine::WRITE)
@@ -62,13 +66,18 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         /*添加空指针判断*/
         auto ptr = cast_node<IdentifierNode>(arg)->get_ptr(context);
         if (ptr == nullptr) throw CodegenException("identifier not found: " + cast_node<IdentifierNode>(arg)->name);
-        if (ptr->getType()->getPointerElementType()->isIntegerTy(8)) {
+        auto type = cast_node<IdentifierNode>(arg)->get_llvmtype(context);
+        if (type->isArrayTy()) {
+          ptr = context.builder.CreateGEP(ptr, context.builder.getInt32(cast_node<ArrayRefNode>(arg)->index));
+          type = cast_node<ArrayRefNode>(arg)->get_element_type(context);
+        }
+        if (type->isIntegerTy(8)) {
           args.push_back(context.builder.CreateGlobalStringPtr("%c"));
           args.push_back(ptr);
-        } else if (ptr->getType()->getPointerElementType()->isIntegerTy()) {
+        } else if (type->isIntegerTy()) {
           args.push_back(context.builder.CreateGlobalStringPtr("%d"));
           args.push_back(ptr);
-        } else if (ptr->getType()->getPointerElementType()->isDoubleTy()) {
+        } else if (type->isDoubleTy()) {
           args.push_back(context.builder.CreateGlobalStringPtr("%lf"));
           args.push_back(ptr);
         } else {
@@ -236,12 +245,23 @@ llvm::Value *IdentifierNode::get_ptr(CodegenContext &context) {
   if (value == nullptr) throw CodegenException("identifier not found: " + name);
   return value->get_llvmptr();
 }
+llvm::Type *IdentifierNode::get_llvmtype(CodegenContext &context) {
+  auto value = context.symbolTable.getLocalSymbol(name);
+  if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
+  if (value == nullptr) throw CodegenException("identifier not found: " + name);
+  return value->get_llvmtype(context);
+}
 
 llvm::Value *IdentifierNode::codegen(CodegenContext &context) { return context.builder.CreateLoad(get_ptr(context)); }
 
 llvm::Value *ArrayRefNode::codegen(CodegenContext &context) {
   return context.builder.CreateLoad(context.builder.CreateGEP(get_ptr(context),context.builder.getInt32(index)));
 }
+llvm::Type *ArrayRefNode::get_element_type(CodegenContext &context) {
+  auto value = context.symbolTable.getLocalSymbol(name);
+  if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
+  if (value == nullptr) throw CodegenException("identifier not found: " + name);
+  return value->get_elementtype(context); }
 
 /* -------- stmt nodes -------- */
 llvm::Value *AssignStmtNode::codegen(CodegenContext &context) {
