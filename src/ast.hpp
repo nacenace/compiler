@@ -150,6 +150,7 @@ struct IdentifierNode : public LeftValueExprNode {
   }
 
   llvm::Value *get_ptr(CodegenContext &context) override;
+  llvm::Type *get_llvmtype(CodegenContext &context);
   llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
@@ -165,6 +166,7 @@ struct ArrayRefNode : public IdentifierNode{
   int index;
   explicit ArrayRefNode(const char *c, const int index) : IdentifierNode(c), index(index) {}
 
+  llvm::Type *get_element_type(CodegenContext &context);
   llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
@@ -215,8 +217,9 @@ struct ArrayTypeNode : public TypeNode {
   std::shared_ptr<TypeNode> elementType;
   //存储各维度的上下界，非整数形式的上下界转换为整数存储
   std::pair<int, int> bounds;
-  ArrayTypeNode(std::shared_ptr<TypeNode> elementType, std::pair<int, int> bounds)
-      : elementType(elementType), bounds(bounds){
+  ArrayTypeNode(const std::shared_ptr<AbstractNode> &elementType,
+                std::pair<int, int> bounds)
+      : elementType(cast_node<TypeNode>(elementType)), bounds(bounds){
     type = Type::ARRAY;
   }
   virtual std::string json_head() const override;
