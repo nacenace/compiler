@@ -105,6 +105,14 @@ type_definition
 
 type_decl
     : simple_type_decl { $$ = $1; }
+    | ARRAY LB index DOTDOT index RB OF type_decl{$$ = make_node<ArrayTypeNode>($8,
+        std::make_pair(cast_node<IntegerNode>($3)->val, cast_node<IntegerNode>($5)->val)); }
+    ;
+
+index
+    : INTEGER { $$ = $1; }
+    | MINUS INTEGER{ cast_node<IntegerNode>($2)->val=0-cast_node<IntegerNode>($2)->val; $$=$2; }
+    | CHAR { $$ = $1; }
     ;
 
 simple_type_decl
@@ -164,11 +172,16 @@ proc_stmt
     ;
 
 variable_list
-    : variable_list COMMA ID
+    : variable_list COMMA variable
         { $$ = $1; $$->add_child($3); }
-    | ID
+    | variable
         { $$ = make_node<ArgListNode>(); $$->add_child($1); }
-    ;
+
+variable
+    : ID
+        { $$ = $1; }
+    | ID LB index RB
+        {$$ = make_node<ArrayRefNode>(cast_node<IdentifierNode>($1)->name.c_str(), cast_node<IntegerNode>($3)->val); }
 
 expression
     : expression GE expr { $$ = make_node<BinopExprNode>(BinaryOperator::GE, $1, $3); }
@@ -201,6 +214,8 @@ factor
     : ID { $$ = $1; }
     | ID LP RP
         { $$ = make_node<FuncExprNode>(make_node<RoutineCallNode>($1)); }
+    | ID LB index RB
+        {$$ = make_node<ArrayRefNode>(cast_node<IdentifierNode>($1)->name.c_str(), cast_node<IntegerNode>($3)->val); }
     | ID LP args_list RP
         { $$ = make_node<FuncExprNode>(make_node<RoutineCallNode>($1, $3)); }
     | SYS_FUNC LP args_list RP
