@@ -197,9 +197,12 @@ struct CaseStmtNode : public StmtNode
  public :
   std::shared_ptr<ExprNode> cond;
   std::shared_ptr<CaseListNode> body;
+  std::shared_ptr<StmtNode> default_stmt;
 
-  CaseStmtNode ( const std::shared_ptr<ExprNode> &cond , const std::shared_ptr<CaseListNode> &body)
-      :cond(cast_node<ExprNode>(cond)), body(cast_node<CaseListNode>(body)){}
+  CaseStmtNode ( const std::shared_ptr<ExprNode> &cond , const std::shared_ptr<CaseListNode> &body,
+               const std::shared_ptr<StmtNode> &default_stmt)
+      :cond(cast_node<ExprNode>(cond)), body(cast_node<CaseListNode>(body)),
+        default_stmt(cast_node<StmtNode>(default_stmt)){}
 
   llvm::Value *codegen(CodegenContext &context) override;
 
