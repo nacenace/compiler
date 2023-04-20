@@ -182,35 +182,26 @@ struct CaseNode : public DummyNode
   bool should_have_children() const override { return false; }
 };
 
-struct CaseListNode : public DummyNode
-{
- public:
-  llvm::Value *codegen(CodegenContext &context) override;
-
- protected:
-  std::string json_head() const override { return std::string{"\"type\": \"CaseList\""}; }
-  bool should_have_children() const override { return true; }
-};
-
 struct CaseStmtNode : public StmtNode
 {
  public :
   std::shared_ptr<ExprNode> cond;
-  std::shared_ptr<CaseListNode> body;
+  std::vector<std::shared_ptr<CaseNode>> body;
   std::shared_ptr<StmtNode> default_stmt;
 
-  CaseStmtNode ( const std::shared_ptr<ExprNode> &cond , const std::shared_ptr<CaseListNode> &body,
-               const std::shared_ptr<StmtNode> &default_stmt)
-      :cond(cast_node<ExprNode>(cond)), body(cast_node<CaseListNode>(body)),
-        default_stmt(cast_node<StmtNode>(default_stmt)){}
+  CaseStmtNode ( const std::shared_ptr<ExprNode> &cond, const std::shared_ptr<StmtNode> &default_stmt)
+      :cond(cast_node<ExprNode>(cond)), default_stmt(cast_node<StmtNode>(default_stmt)){}
 
   llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
   bool should_have_children() const override { return false; }
   std::string json_head() const override {
-    return std::string{"\"type\": \"CaseStmtNode\", \"expr\": "} + this->cond->to_json() +
-           ", \"body\": " + this->body->to_json();
+    std::string json = "\"type\": \"CaseStmtNode\", \"expr\": "+ this->cond->to_json() + ", \"body\": { ";
+    for (auto case_stmt : body)
+      json += "\"cond\": " + case_stmt->cond->to_json() + ", \"stmt\": " + case_stmt->stmt->to_json() + ", ";
+    json += "\"default_stmt\": " + default_stmt -> to_json() + "}";
+    return json;
   }
 };
 
