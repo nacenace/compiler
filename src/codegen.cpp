@@ -351,6 +351,25 @@ llvm::Value *CaseStmtNode::codegen(CodegenContext &context) {
   return nullptr;
 }
 
+llvm::Value *RepeatStmtNode::codegen(CodegenContext &context) {
+  repeat_stmt->codegen(context);
+
+  llvm::Value *CondV = cond->codegen(context);
+  llvm::Function *TheFunction = context.builder.GetInsertBlock()->getParent();
+  llvm::BasicBlock *LoopBB = llvm::BasicBlock::Create(context.module->getContext(), "loop", TheFunction);
+  llvm::BasicBlock *AfterBB =
+        llvm::BasicBlock::Create(context.module->getContext(), "end", TheFunction);
+  context.builder.CreateCondBr(CondV, AfterBB, LoopBB);
+
+  context.builder.SetInsertPoint(LoopBB);
+  repeat_stmt->codegen(context);
+  CondV = cond->codegen(context);
+  context.builder.CreateCondBr(CondV, AfterBB, LoopBB);
+
+  context.builder.SetInsertPoint(AfterBB);
+  return nullptr;
+}
+
 /* -------- case node -------- */
 llvm::Value *CaseNode::codegen(CodegenContext &context) { return nullptr;}
 
