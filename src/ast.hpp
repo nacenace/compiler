@@ -148,8 +148,8 @@ struct IfStmtNode : public StmtNode
   std::shared_ptr<StmtNode> then_stmt;
   std::shared_ptr<StmtNode> else_stmt;
   
-  IfStmtNode ( const std::shared_ptr<ExprNode> &exprIf , const std::shared_ptr<StmtNode> &StmtT
-             ,const std::shared_ptr<StmtNode> &StmtF) : cond(cast_node<ExprNode>(exprIf)),
+  IfStmtNode ( const std::shared_ptr<AbstractNode> &exprIf , const std::shared_ptr<AbstractNode> &StmtT
+             ,const std::shared_ptr<AbstractNode> &StmtF) : cond(cast_node<ExprNode>(exprIf)),
              then_stmt(cast_node<StmtNode>(StmtT)),else_stmt(cast_node<StmtNode>(StmtF)) {}
 
   llvm::Value *codegen(CodegenContext &context) override;
@@ -157,8 +157,27 @@ struct IfStmtNode : public StmtNode
  protected:
   bool should_have_children() const override { return false; }
   std::string json_head() const override {
-    return std::string{"\"type\": \"IfStmtNode\", \"expr\": "} + this->cond->json_head() +
+    return std::string{"\"type\": \"IfStmtNode\", \"expr\": "} + this->cond->to_json() +
            ", \"stmtT\": " + this->then_stmt->to_json() + ", \"stmtF\": " + this->else_stmt->to_json();
+  }
+};
+
+struct RepeatStmtNode : public StmtNode
+{
+ public:
+  std::shared_ptr<ExprNode> cond;
+  std::shared_ptr<StmtNode> repeat_stmt;
+
+  RepeatStmtNode ( const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &repeat_stmt)
+      : cond(cast_node<ExprNode>(cond)), repeat_stmt(cast_node<StmtNode>(repeat_stmt)){}
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  bool should_have_children() const override { return false; }
+  std::string json_head() const override {
+    return std::string{"\"type\": \"RepeatStmtNode\", \"expr\": "} + this->cond->to_json() +
+           ", \"stmt\": " + this->repeat_stmt->to_json();
   }
 };
 
@@ -354,7 +373,7 @@ struct CaseNode : public DummyNode
 
  protected:
   std::string json_head() const override {
-    return std::string{"\"type\": \"CaseNode\", \"cond\": "} + this->cond->json_head() +
+    return std::string{"\"type\": \"CaseNode\", \"cond\": "} + this->cond->to_json() +
            ", \"stmt\": " + this->stmt->to_json();
   }
 
@@ -378,7 +397,7 @@ struct CaseStmtNode : public StmtNode
   std::string json_head() const override {
     std::string json = "\"type\": \"CaseStmtNode\", \"expr\": "+ this->cond->to_json() + ", \"body\": { ";
     for (auto case_stmt : body)
-      json += "\"case\": " + case_stmt->cond->json_head() + ", \"stmt\": " + case_stmt->stmt->to_json() + ", ";
+      json += "\"case\": " + case_stmt->cond->to_json() + ", \"stmt\": " + case_stmt->stmt->to_json() + ", ";
     json += "\"default_stmt\": " + default_stmt -> to_json() + "}";
     return json;
   }
