@@ -141,6 +141,27 @@ struct StmtNode : public DummyNode {
   StmtNode() = default;
 };
 
+struct IfStmtNode : public StmtNode
+{
+ public :
+  std::shared_ptr<ExprNode> entry;
+  std::shared_ptr<StmtNode> then_stmt;
+  std::shared_ptr<StmtNode> else_stmt;
+  
+  IfStmtNode ( const std::shared_ptr<ExprNode> &exprIf , const std::shared_ptr<StmtNode> &StmtT
+             ,const std::shared_ptr<StmtNode> &StmtF) : entry(cast_node<ExprNode>(exprIf)),
+             then_stmt(cast_node<StmtNode>(StmtT)),else_stmt(cast_node<StmtNode>(StmtF)) {}
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  bool should_have_children() const override { return false; }
+  std::string json_head() const override {
+    return std::string{"\"type\": \"IfStmtNode\", \"expr\": "} + this->entry->to_json() +
+           ", \"stmtT\": " + this->then_stmt->to_json() + ", \"stmtF\": " + this->else_stmt->to_json();
+  }
+};
+
 struct IdentifierNode : public LeftValueExprNode {
  public:
   explicit IdentifierNode(const char *c) {
