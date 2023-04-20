@@ -288,15 +288,15 @@ llvm::Value *ProcStmtNode::codegen(CodegenContext &context) {
 }
 
 llvm::Value *IfStmtNode::codegen(CodegenContext &context) {
-  cond->codegen(context);
-  llvm::Value *CondV = CondV = context.builder.CreateFCmpONE(
+  llvm::Value *CondV = cond->codegen(context);
+  CondV = context.builder.CreateFCmpONE(
       CondV, llvm::ConstantFP::get(context.builder.getDoubleTy(), 0.0), "ifcond");
 
   llvm::Function *TheFunction = context.builder.GetInsertBlock()->getParent();
   llvm::BasicBlock *ThenBB =
       llvm::BasicBlock::Create(context.module->getContext(), "then", TheFunction);
   llvm::BasicBlock *ElseBB = llvm::BasicBlock::Create(context.module->getContext(), "else");
-  llvm::BasicBlock *MergeBB = llvm::BasicBlock::Create(context.module->getContext(), "ifcont");
+  llvm::BasicBlock *MergeBB = llvm::BasicBlock::Create(context.module->getContext(), "merge");
   context.builder.CreateCondBr(CondV, ThenBB, ElseBB);
 
   context.builder.SetInsertPoint(ThenBB);
@@ -319,6 +319,40 @@ llvm::Value *IfStmtNode::codegen(CodegenContext &context) {
   return PN;*/
   return nullptr;
 }
+
+llvm::Value *CaseStmtNode::codegen(CodegenContext &context) {
+  llvm::Value *CondV = cond->codegen(context);
+
+  llvm::Function *TheFunction = context.builder.GetInsertBlock()->getParent();
+  llvm::BasicBlock *DefaultBB =
+      llvm::BasicBlock::Create(context.module->getContext(), "default", TheFunction);
+  llvm::BasicBlock *MergeBB =
+      llvm::BasicBlock::Create(context.module->getContext(), "merge", TheFunction);
+  auto switch_case = context.builder.CreateSwitch(CondV, DefaultBB, body.size());
+  for (auto branch : body) {
+    auto BranchBB = llvm::BasicBlock::Create(context.module->getContext(), "branch", TheFunction);
+    context.builder.SetInsertPoint(BranchBB);
+    branch->stmt->codegen(context);
+    context.builder.CreateBr(MergeBB);
+    //暂时只支持int, char
+    if (is_a_ptr_of<IntegerNode>(branch->cond)){
+      auto int_case = cast_node<IntegerNode>(branch->cond);
+      switch_case->addCase(context.builder.getInt32(int_case->val), BranchBB);
+    }else if (is_a_ptr_of<CharNode>(branch->cond)){
+      auto char_case = cast_node<CharNode>(branch->cond);
+      switch_case->addCase(context.builder.getInt32((int)char_case->val), BranchBB);
+    }
+  }
+  context.builder.SetInsertPoint(DefaultBB);
+  default_stmt->codegen(context);
+  context.builder.CreateBr(MergeBB);
+
+  context.builder.SetInsertPoint(MergeBB);
+  return nullptr;
+}
+
+/* -------- case node -------- */
+llvm::Value *CaseNode::codegen(CodegenContext &context) { return nullptr;}
 
 /* -------- const value nodes -------- */
 llvm::Value *StringNode::codegen(CodegenContext &context) { return context.builder.CreateGlobalStringPtr(val); }
