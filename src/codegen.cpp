@@ -351,8 +351,9 @@ llvm::Value *CaseStmtNode::codegen(CodegenContext &context) {
   return nullptr;
 }
 
-llvm::Value *RepeatStmtNode::codegen(CodegenContext &context) {
-  repeat_stmt->codegen(context);
+llvm::Value *LoopStmtNode::codegen(CodegenContext &context) {
+  if (type == LoopType::REPEAT)
+    repeat_stmt->codegen(context);
 
   llvm::Value *CondV = cond->codegen(context);
   llvm::Function *TheFunction = context.builder.GetInsertBlock()->getParent();

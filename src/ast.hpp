@@ -162,24 +162,31 @@ struct IfStmtNode : public StmtNode
   }
 };
 
-struct RepeatStmtNode : public StmtNode
+enum class LoopType{
+  REPEAT,
+  WHILE
+};
+
+struct LoopStmtNode : public StmtNode
 {
  public:
+  LoopType type;
   std::shared_ptr<ExprNode> cond;
   std::shared_ptr<StmtNode> repeat_stmt;
 
-  RepeatStmtNode ( const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &repeat_stmt)
-      : cond(cast_node<ExprNode>(cond)), repeat_stmt(cast_node<StmtNode>(repeat_stmt)){}
+  LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &repeat_stmt)
+      : type(type), cond(cast_node<ExprNode>(cond)), repeat_stmt(cast_node<StmtNode>(repeat_stmt)){}
 
   llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
   bool should_have_children() const override { return false; }
   std::string json_head() const override {
-    return std::string{"\"type\": \"RepeatStmtNode\", \"expr\": "} + this->cond->to_json() +
+    return std::string{"\"type\": \"LoopStmtNode\", \"expr\": "} + this->cond->to_json() +
            ", \"stmt\": " + this->repeat_stmt->to_json();
   }
 };
+
 
 struct IdentifierNode : public LeftValueExprNode {
  public:
