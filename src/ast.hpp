@@ -162,6 +162,55 @@ struct IfStmtNode : public StmtNode
   }
 };
 
+struct CaseNode : public DummyNode
+{
+ public :
+  std::shared_ptr<ExprNode> cond;
+  std::shared_ptr<StmtNode> stmt;
+
+  CaseNode (const std::shared_ptr<AbstractNode> &cond, const std::shared_ptr<AbstractNode> &stmt)
+      : cond(cast_node<ExprNode>(cond)), stmt(cast_node<StmtNode>(stmt)) {}
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override {
+    return std::string{"\"type\": \"CaseNode\", \"cond\": "} + this->cond->to_json() +
+           ", \"stmt\": " + this->stmt->to_json();
+  }
+
+  bool should_have_children() const override { return false; }
+};
+
+struct CaseListNode : public DummyNode
+{
+ public:
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override { return std::string{"\"type\": \"CaseList\""}; }
+  bool should_have_children() const override { return true; }
+};
+
+struct CaseStmtNode : public StmtNode
+{
+ public :
+  std::shared_ptr<ExprNode> cond;
+  std::shared_ptr<CaseListNode> body;
+
+  CaseStmtNode ( const std::shared_ptr<ExprNode> &cond , const std::shared_ptr<CaseListNode> &body)
+      :cond(cast_node<ExprNode>(cond)), body(cast_node<CaseListNode>(body)){}
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  bool should_have_children() const override { return false; }
+  std::string json_head() const override {
+    return std::string{"\"type\": \"CaseStmtNode\", \"expr\": "} + this->cond->to_json() +
+           ", \"body\": " + this->body->to_json();
+  }
+};
+
 struct IdentifierNode : public LeftValueExprNode {
  public:
   explicit IdentifierNode(const char *c) {
