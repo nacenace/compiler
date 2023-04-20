@@ -215,7 +215,7 @@ llvm::Value *ProgramNode::codegen(CodegenContext &context) {
 
   auto *func_type = llvm::FunctionType::get(context.builder.getInt32Ty(), false);
   auto *main_func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, "main", context.module.get());
-  auto *block = llvm::BasicBlock::Create(context.module->getContext(), "entry", main_func);
+  auto *block = llvm::BasicBlock::Create(context.module->getContext(), "cond", main_func);
   context.builder.SetInsertPoint(block);
   for (auto &stmt : children()) stmt->codegen(context);
   context.builder.CreateRet(context.builder.getInt32(0));
@@ -284,6 +284,39 @@ llvm::Value *AssignStmtNode::codegen(CodegenContext &context) {
 
 llvm::Value *ProcStmtNode::codegen(CodegenContext &context) {
   proc_call->codegen(context);
+  return nullptr;
+}
+
+llvm::Value *IfStmtNode::codegen(CodegenContext &context) {
+  cond->codegen(context);
+  llvm::Value *CondV = CondV = context.builder.CreateFCmpONE(
+      CondV, llvm::ConstantFP::get(context.builder.getDoubleTy(), 0.0), "ifcond");
+
+  llvm::Function *TheFunction = context.builder.GetInsertBlock()->getParent();
+  llvm::BasicBlock *ThenBB =
+      llvm::BasicBlock::Create(context.module->getContext(), "then", TheFunction);
+  llvm::BasicBlock *ElseBB = llvm::BasicBlock::Create(context.module->getContext(), "else");
+  llvm::BasicBlock *MergeBB = llvm::BasicBlock::Create(context.module->getContext(), "ifcont");
+  context.builder.CreateCondBr(CondV, ThenBB, ElseBB);
+
+  context.builder.SetInsertPoint(ThenBB);
+  then_stmt->codegen(context);
+  context.builder.CreateBr(MergeBB);
+  // ThenBB = context.builder.GetInsertBlock();
+
+  TheFunction->getBasicBlockList().push_back(ElseBB);
+  context.builder.SetInsertPoint(ElseBB);
+  else_stmt->codegen(context);
+  context.builder.CreateBr(MergeBB);
+  // ElseBB = context.builder.GetInsertBlock();
+
+  TheFunction->getBasicBlockList().push_back(MergeBB);
+  context.builder.SetInsertPoint(MergeBB);
+/*  llvm::PHINode *PN =
+      context.builder.CreatePHI(context.builder.getDoubleTy(), 2, "iftmp");
+  PN->addIncoming(ThenV, ThenBB);
+  PN->addIncoming(ElseV, ElseBB);
+  return PN;*/
   return nullptr;
 }
 
