@@ -162,32 +162,6 @@ struct IfStmtNode : public StmtNode
   }
 };
 
-enum class LoopType{
-  REPEAT,
-  WHILE
-};
-
-struct LoopStmtNode : public StmtNode
-{
- public:
-  LoopType type;
-  std::shared_ptr<ExprNode> cond;
-  std::shared_ptr<StmtNode> repeat_stmt;
-
-  LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &repeat_stmt)
-      : type(type), cond(cast_node<ExprNode>(cond)), repeat_stmt(cast_node<StmtNode>(repeat_stmt)){}
-
-  llvm::Value *codegen(CodegenContext &context) override;
-
- protected:
-  bool should_have_children() const override { return false; }
-  std::string json_head() const override {
-    return std::string{"\"type\": \"LoopStmtNode\", \"expr\": "} + this->cond->to_json() +
-           ", \"stmt\": " + this->repeat_stmt->to_json();
-  }
-};
-
-
 struct IdentifierNode : public LeftValueExprNode {
  public:
   explicit IdentifierNode(const char *c) {
@@ -219,6 +193,52 @@ struct ArrayRefNode : public IdentifierNode{
  protected:
   std::string json_head() const override {
     return std::string{"\"type\": \"ArrayRefNode\", \"name\": \""} + this->name + "\"";
+  }
+};
+
+
+enum class LoopType{
+  REPEAT,
+  WHILE,
+  FOR,
+  FORDOWN
+};
+
+inline std::string to_string(LoopType loopType) {
+  std::map<LoopType, std::string> loop_to_string{{LoopType::REPEAT, "Repeat"}, {LoopType::WHILE, "While"},
+                                                 {LoopType::FOR, "for"},       {LoopType::FORDOWN, "for_down"}};
+  return loop_to_string[loopType];
+}
+
+struct LoopStmtNode : public StmtNode
+{
+ public:
+  LoopType type;
+  std::shared_ptr<IdentifierNode> i;
+  std::shared_ptr<ExprNode> cond;
+  std::shared_ptr<ExprNode> bound;
+  std::shared_ptr<StmtNode> loop_stmt;
+
+  LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &repeat_stmt)
+      : type(type), cond(cast_node<ExprNode>(cond)), loop_stmt(cast_node<StmtNode>(repeat_stmt)){}
+
+  LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &repeat_stmt,
+               std::shared_ptr<IdentifierNode> &i, const std::shared_ptr<AbstractNode> &bound)
+      : type(type), cond(cast_node<ExprNode>(cond)), loop_stmt(cast_node<StmtNode>(repeat_stmt)), i(i),
+        bound(cast_node<ExprNode>(bound)){}
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  bool should_have_children() const override { return false; }
+  std::string json_head() const override {
+    if (type == LoopType::FOR || type == LoopType::FORDOWN)
+      return std::string{"\"type\": \"" + to_string(type) + "StmtNode\", \"head\": Identifier "} +
+             this->i->name + " from " + this->cond->to_json() + " to " + this->bound->to_json() +
+             "\", \"stmt\": " + this->loop_stmt->to_json();
+    else
+      return std::string{"\"type\": \"" + to_string(type) + "StmtNode\", \"expr\": "} + this->cond->to_json() +
+             ", \"stmt\": " + this->loop_stmt->to_json();
   }
 };
 
@@ -740,5 +760,6 @@ struct ProcStmtNode : public StmtNode {
 
 struct StmtList : public StmtNode {};
 }  // namespace spc
+
 
 #endif

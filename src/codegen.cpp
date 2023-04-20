@@ -351,11 +351,33 @@ llvm::Value *CaseStmtNode::codegen(CodegenContext &context) {
   return nullptr;
 }
 
+std::string type2string(CodegenContext &context, llvm::Type *type){
+  if (type->isIntegerTy(8))
+    return "char";
+  else if (type->isIntegerTy(32))
+    return "integer";
+  else if (type->isDoubleTy())
+    return "double";
+}
+
 llvm::Value *LoopStmtNode::codegen(CodegenContext &context) {
-  if (type == LoopType::REPEAT)
-    repeat_stmt->codegen(context);
+  if (type == LoopType::REPEAT) loop_stmt->codegen(context);
 
   llvm::Value *CondV = cond->codegen(context);
+  llvm::Value *EndV = nullptr;
+  llvm::Value *index = nullptr;
+  if (type == LoopType::FOR || type == LoopType::FORDOWN){
+    index = i->codegen(context);
+    if (CondV->getType() != index->getType())
+      throw CodegenException("incompatible type in assignments: " + i->name);
+    EndV = bound->codegen(context);
+    if (EndV->getType() != CondV->getType())
+      throw CodegenException("incompatible type in for-do: read " + type2string(context, EndV->getType())
+                             + ", expected " + type2string(context, CondV->getType()));
+    context.builder.CreateStore(CondV, index);
+    if (type == LoopType::FOR)  CondV = context.builder.CreateICmpSGT(index, EndV);
+    else  CondV = context.builder.CreateICmpSLT(index, EndV);
+  }
   llvm::Function *TheFunction = context.builder.GetInsertBlock()->getParent();
   llvm::BasicBlock *LoopBB = llvm::BasicBlock::Create(context.module->getContext(), "loop", TheFunction);
   llvm::BasicBlock *AfterBB =
@@ -363,10 +385,20 @@ llvm::Value *LoopStmtNode::codegen(CodegenContext &context) {
   context.builder.CreateCondBr(CondV, AfterBB, LoopBB);
 
   context.builder.SetInsertPoint(LoopBB);
-  repeat_stmt->codegen(context);
-  CondV = cond->codegen(context);
+  loop_stmt->codegen(context);
+  if (type == LoopType::REPEAT || type == LoopType::WHILE)
+    CondV = cond->codegen(context);
+  else {
+    llvm::Value *one = llvm::ConstantInt::get(EndV->getType(), 1);
+    if (type == LoopType::FOR) {
+      context.builder.CreateStore(context.builder.CreateAdd(index, one), index);
+      CondV = context.builder.CreateICmpSGT(index, EndV);
+    } else {
+      context.builder.CreateStore(context.builder.CreateSub(index, one), index);
+      CondV = context.builder.CreateICmpSLT(index, EndV);
+    }
+  }
   context.builder.CreateCondBr(CondV, AfterBB, LoopBB);
-
   context.builder.SetInsertPoint(AfterBB);
   return nullptr;
 }
