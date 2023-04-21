@@ -140,7 +140,7 @@ routine_body
 
 loop_body
     : compound_stmt { $$ = $1; }
-    | stmt_list { $$ = make_node<CompoundStmtNode>(); $$->lift_children($1); }
+    | stmt { $$ = make_node<CompoundStmtNode>(); $$->add_child($1); }
     ;
 
 compound_stmt
