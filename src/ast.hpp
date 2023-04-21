@@ -222,12 +222,12 @@ struct LoopStmtNode : public StmtNode
   std::shared_ptr<ExprNode> bound;
   std::shared_ptr<StmtNode> loop_stmt;
 
-  LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &repeat_stmt)
-      : type(type), cond(cast_node<ExprNode>(cond)), loop_stmt(cast_node<StmtNode>(repeat_stmt)){}
+  LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &loop_stmt)
+      : type(type), cond(cast_node<ExprNode>(cond)), loop_stmt(cast_node<StmtNode>(loop_stmt)){}
 
-  LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &repeat_stmt,
+  LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &loop_stmt,
                std::shared_ptr<AbstractNode> &i, const std::shared_ptr<AbstractNode> &bound)
-      : type(type), cond(cast_node<ExprNode>(cond)), loop_stmt(cast_node<StmtNode>(repeat_stmt)), i(cast_node<IdentifierNode>(i)),
+      : type(type), cond(cast_node<ExprNode>(cond)), loop_stmt(cast_node<StmtNode>(loop_stmt)), i(cast_node<IdentifierNode>(i)),
         bound(cast_node<ExprNode>(bound)){}
 
   llvm::Value *codegen(CodegenContext &context) override;
@@ -715,6 +715,7 @@ struct CompoundStmtNode : public StmtNode {
   std::string json_head() const override { return std::string{"\"type\": \"CompoundStmt\""}; }
 
   bool should_have_children() const override { return true; }
+  llvm::Value *codegen(CodegenContext &context) override;
 };
 
 struct AssignStmtNode : public StmtNode {

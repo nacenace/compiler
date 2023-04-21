@@ -380,44 +380,47 @@ std::string type2string(CodegenContext &context, llvm::Type *type){
 
 llvm::Value *LoopStmtNode::codegen(CodegenContext &context) {
   if (type == LoopType::REPEAT) loop_stmt->codegen(context);
-
   llvm::Value *CondV = cond->codegen(context);
   llvm::Value *EndV = nullptr;
-  llvm::Value *index = nullptr;
   if (type == LoopType::FOR || type == LoopType::FORDOWN){
-    index = i->codegen(context);
-    if (CondV->getType() != index->getType())
+    if (CondV->getType() != i->get_ptr(context)->getType()->getPointerElementType())
       throw CodegenException("incompatible type in assignments: " + i->name);
     EndV = bound->codegen(context);
     if (EndV->getType() != CondV->getType())
       throw CodegenException("incompatible type in for-do: read " + type2string(context, EndV->getType())
                              + ", expected " + type2string(context, CondV->getType()));
-    context.builder.CreateStore(CondV, index);
-    if (type == LoopType::FOR)  CondV = context.builder.CreateICmpSGT(index, EndV);
-    else  CondV = context.builder.CreateICmpSLT(index, EndV);
+    context.builder.CreateStore(CondV, i->get_ptr(context));
+    if (type == LoopType::FOR)  CondV = context.builder.CreateICmpSGT(i->codegen(context), EndV);
+    else  CondV = context.builder.CreateICmpSLT(i->codegen(context), EndV);
   }
   llvm::Function *TheFunction = context.builder.GetInsertBlock()->getParent();
   llvm::BasicBlock *LoopBB = llvm::BasicBlock::Create(context.module->getContext(), "loop", TheFunction);
   llvm::BasicBlock *AfterBB =
         llvm::BasicBlock::Create(context.module->getContext(), "end", TheFunction);
   context.builder.CreateCondBr(CondV, AfterBB, LoopBB);
-
   context.builder.SetInsertPoint(LoopBB);
   loop_stmt->codegen(context);
+
   if (type == LoopType::REPEAT || type == LoopType::WHILE)
     CondV = cond->codegen(context);
   else {
     llvm::Value *one = llvm::ConstantInt::get(EndV->getType(), 1);
     if (type == LoopType::FOR) {
-      context.builder.CreateStore(context.builder.CreateAdd(index, one), index);
-      CondV = context.builder.CreateICmpSGT(index, EndV);
+      context.builder.CreateStore(context.builder.CreateAdd(i->codegen(context), one), i->get_ptr(context));
+      CondV = context.builder.CreateICmpSGT(i->codegen(context), EndV);
     } else {
-      context.builder.CreateStore(context.builder.CreateSub(index, one), index);
-      CondV = context.builder.CreateICmpSLT(index, EndV);
+      context.builder.CreateStore(context.builder.CreateSub(i->codegen(context), one), i->get_ptr(context));
+      CondV = context.builder.CreateICmpSLT(i->codegen(context), EndV);
     }
   }
   context.builder.CreateCondBr(CondV, AfterBB, LoopBB);
   context.builder.SetInsertPoint(AfterBB);
+  return nullptr;
+}
+
+llvm::Value *CompoundStmtNode::codegen(CodegenContext &context) {
+  for (auto &child : children())
+    child->codegen(context);
   return nullptr;
 }
 
