@@ -13,6 +13,7 @@ struct Symbol {
   llvm::Value *ptr;
   std::shared_ptr<TypeNode> typeNode;
   llvm::Value *get_llvmptr() { return ptr; }
+  llvm::Type *get_llvmtype(CodegenContext &context) { return typeNode->get_llvm_type(context);}
   Symbol(std::string name, std::shared_ptr<TypeNode> type, llvm::Value *ptr, bool isConst = false)
       : name(name), typeNode(type), ptr(ptr), isConst(isConst) {}
   friend struct SymbolTable;

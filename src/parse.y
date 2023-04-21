@@ -105,6 +105,8 @@ type_definition
 
 type_decl
     : simple_type_decl { $$ = $1; }
+    | ARRAY LB const_value DOTDOT const_value RB OF type_decl{$$ = make_node<ArrayTypeNode>($8,
+        std::make_pair(cast_node<IntegerNode>($3)->val, cast_node<IntegerNode>($5)->val)); }
     ;
 
 simple_type_decl
@@ -136,6 +138,11 @@ routine_body
     : compound_stmt { $$ = $1; }
     ;
 
+loop_body
+    : compound_stmt { $$ = $1; }
+    | stmt { $$ = make_node<CompoundStmtNode>(); $$->add_child($1); }
+    ;
+
 compound_stmt
     : _BEGIN stmt_list END
         { $$ = make_node<CompoundStmtNode>(); $$->lift_children($2); }
@@ -148,6 +155,8 @@ stmt_list
 
 stmt
     : proc_stmt     { $$ = $1; }
+    | assign_stmt   { $$ = $1; }
+    | loop_stmt     { $$ = $1; }
     ;
 
 proc_stmt
@@ -163,11 +172,29 @@ proc_stmt
         { $$ = make_node<ProcStmtNode>(make_node<SysCallNode>($1, $3)); }
     ;
 
+assign_stmt
+    : variable ASSIGN expression
+        { $$ = make_node<AssignStmtNode>($1, $3); }
+    ;
+loop_stmt
+    : FOR ID ASSIGN expression TO expression DO loop_body
+        { $$ = make_node<LoopStmtNode>(LoopType::FOR, $4, $8, $2, $6); }
+    ;
+
 variable_list
-    : variable_list COMMA ID
+    : variable_list COMMA variable
         { $$ = $1; $$->add_child($3); }
-    | ID
+    | variable
         { $$ = make_node<ArgListNode>(); $$->add_child($1); }
+    ;
+
+variable
+    : ID
+        { $$ = $1; }
+    | ID LB const_value RB
+        { $$ = make_node<ArrayRefNode>(cast_node<IdentifierNode>($1)->name.c_str(), cast_node<IntegerNode>($3)->val); }
+    | ID LB variable RB
+        { $$ = make_node<ArrayRefNode>(cast_node<IdentifierNode>($1)->name.c_str(), $3); }
     ;
 
 expression
@@ -198,7 +225,7 @@ term
     ;
 
 factor
-    : ID { $$ = $1; }
+    : variable { $$ = $1; }
     | ID LP RP
         { $$ = make_node<FuncExprNode>(make_node<RoutineCallNode>($1)); }
     | ID LP args_list RP
