@@ -187,6 +187,7 @@ struct ArrayRefNode : public IdentifierNode{
   int index;
   explicit ArrayRefNode(const char *c, const int index) : IdentifierNode(c), index(index) {}
 
+  llvm::Value *get_ptr(CodegenContext &context) override;
   llvm::Type *get_element_type(CodegenContext &context);
   llvm::Value *codegen(CodegenContext &context) override;
 

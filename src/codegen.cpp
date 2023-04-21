@@ -192,7 +192,7 @@ llvm::Type *TypeNode::get_llvm_type(CodegenContext &context) const {
   if (auto *simple_type = dynamic_cast<const SimpleTypeNode *>(this)) {
     return llvm_type(simple_type->type, context);
   }else if (auto *array_type = dynamic_cast<const ArrayTypeNode *>(this)){
-    auto length = array_type->bounds.second - array_type->bounds.first;
+    auto length = array_type->bounds.second - array_type->bounds.first + 1;
     return llvm_type(array_type->elementType->type, length, context);
   }
 
@@ -245,6 +245,15 @@ llvm::Value *IdentifierNode::get_ptr(CodegenContext &context) {
   if (value == nullptr) throw CodegenException("identifier not found: " + name);
   return value->get_llvmptr();
 }
+llvm::Value *ArrayRefNode::get_ptr(CodegenContext &context) {
+  auto value = context.symbolTable.getLocalSymbol(name);
+  if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
+  if (value == nullptr) throw CodegenException("identifier not found: " + name);
+  auto zero = context.builder.getInt32(0);
+  auto index = context.builder.getInt32(this->index);
+  return context.builder.CreateGEP(value->get_llvmptr(), std::vector<llvm::Value *>{zero, index});
+}
+
 llvm::Type *IdentifierNode::get_llvmtype(CodegenContext &context) {
   auto value = context.symbolTable.getLocalSymbol(name);
   if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
@@ -252,10 +261,12 @@ llvm::Type *IdentifierNode::get_llvmtype(CodegenContext &context) {
   return value->get_llvmtype(context);
 }
 
-llvm::Value *IdentifierNode::codegen(CodegenContext &context) { return context.builder.CreateLoad(get_ptr(context)); }
+llvm::Value *IdentifierNode::codegen(CodegenContext &context) {
+  return context.builder.CreateLoad(get_ptr(context));
+}
 
 llvm::Value *ArrayRefNode::codegen(CodegenContext &context) {
-  return context.builder.CreateLoad(context.builder.CreateGEP(get_ptr(context),context.builder.getInt32(index)));
+  return context.builder.CreateLoad(get_ptr(context));
 }
 llvm::Type *ArrayRefNode::get_element_type(CodegenContext &context) {
   auto value = context.symbolTable.getLocalSymbol(name);
@@ -275,7 +286,8 @@ llvm::Value *AssignStmtNode::codegen(CodegenContext &context) {
   } else if (!((lhs_type->isIntegerTy(1) && rhs_type->isIntegerTy(1)) ||
                (lhs_type->isIntegerTy(8) && rhs_type->isIntegerTy(8)) ||
                (lhs_type->isIntegerTy(32) && rhs_type->isIntegerTy(32)) ||
-               (lhs_type->isDoubleTy() && rhs_type->isDoubleTy()))) {
+               (lhs_type->isDoubleTy() && rhs_type->isDoubleTy()) ||
+               (lhs_type->isArrayTy() && lhs_type->getArrayElementType() == rhs_type))) {
     throw CodegenException("incompatible type in assignments: " + assignee->name);
   }
   context.builder.CreateStore(rhs, lhs);
@@ -358,6 +370,7 @@ std::string type2string(CodegenContext &context, llvm::Type *type){
     return "integer";
   else if (type->isDoubleTy())
     return "double";
+  return "";
 }
 
 llvm::Value *LoopStmtNode::codegen(CodegenContext &context) {

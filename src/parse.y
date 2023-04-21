@@ -156,6 +156,7 @@ stmt_list
 
 stmt
     : proc_stmt     { $$ = $1; }
+    | assign_stmt   { $$ = $1; }
     ;
 
 proc_stmt
@@ -171,17 +172,24 @@ proc_stmt
         { $$ = make_node<ProcStmtNode>(make_node<SysCallNode>($1, $3)); }
     ;
 
+assign_stmt
+    : variable ASSIGN expression
+        { $$ = make_node<AssignStmtNode>($1, $3); }
+    ;
+
 variable_list
     : variable_list COMMA variable
         { $$ = $1; $$->add_child($3); }
     | variable
         { $$ = make_node<ArgListNode>(); $$->add_child($1); }
+    ;
 
 variable
     : ID
         { $$ = $1; }
     | ID LB index RB
-        {$$ = make_node<ArrayRefNode>(cast_node<IdentifierNode>($1)->name.c_str(), cast_node<IntegerNode>($3)->val); }
+        { $$ = make_node<ArrayRefNode>(cast_node<IdentifierNode>($1)->name.c_str(), cast_node<IntegerNode>($3)->val); }
+    ;
 
 expression
     : expression GE expr { $$ = make_node<BinopExprNode>(BinaryOperator::GE, $1, $3); }
