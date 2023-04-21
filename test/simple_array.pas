@@ -1,12 +1,13 @@
 program prop;
 var
-  n: array [0..10] of integer;
+  n: array [3..10] of integer;
   i: integer;
   j: Integer;
 begin
-    Read(i);
+    i := 5;
+    Read(n[i]);
     j := i;
-    writeln('j = ', j);
-    n[1] := i;
-    writeln('n[1] = ', n[1]);
+    n[n[i]] := j;
+    writeln('n[', i, '] = ', n[i]);
+    writeln('n[', n[i], '] = ', n[n[i]]);
 end.

@@ -185,18 +185,20 @@ struct IdentifierNode : public LeftValueExprNode {
 struct ArrayRefNode : public IdentifierNode{
  public:
   int index;
+  std::shared_ptr<IdentifierNode> i = nullptr;
   explicit ArrayRefNode(const char *c, const int index) : IdentifierNode(c), index(index) {}
+  explicit ArrayRefNode(const char *c, const std::shared_ptr<AbstractNode> &i)
+      : IdentifierNode(c), i(cast_node<IdentifierNode>(i)) {}
 
   llvm::Value *get_ptr(CodegenContext &context) override;
-  llvm::Type *get_element_type(CodegenContext &context);
   llvm::Value *codegen(CodegenContext &context) override;
+  llvm::Value *get_index(CodegenContext &context);
 
  protected:
   std::string json_head() const override {
     return std::string{"\"type\": \"ArrayRefNode\", \"name\": \""} + this->name + "\"";
   }
 };
-
 
 enum class LoopType{
   REPEAT,
@@ -224,8 +226,8 @@ struct LoopStmtNode : public StmtNode
       : type(type), cond(cast_node<ExprNode>(cond)), loop_stmt(cast_node<StmtNode>(repeat_stmt)){}
 
   LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &repeat_stmt,
-               std::shared_ptr<IdentifierNode> &i, const std::shared_ptr<AbstractNode> &bound)
-      : type(type), cond(cast_node<ExprNode>(cond)), loop_stmt(cast_node<StmtNode>(repeat_stmt)), i(i),
+               std::shared_ptr<AbstractNode> &i, const std::shared_ptr<AbstractNode> &bound)
+      : type(type), cond(cast_node<ExprNode>(cond)), loop_stmt(cast_node<StmtNode>(repeat_stmt)), i(cast_node<IdentifierNode>(i)),
         bound(cast_node<ExprNode>(bound)){}
 
   llvm::Value *codegen(CodegenContext &context) override;

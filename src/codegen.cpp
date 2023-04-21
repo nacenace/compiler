@@ -28,7 +28,7 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         std::vector<llvm::Value *> args;
         auto type = value->getType();
         if (type->isArrayTy())
-          type = cast_node<ArrayRefNode>(arg)->get_element_type(context);
+          type = type->getArrayElementType();
         if (type->isIntegerTy(8)) {
           args.push_back(context.builder.CreateGlobalStringPtr("%c"));
           args.push_back(value);
@@ -68,8 +68,8 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         if (ptr == nullptr) throw CodegenException("identifier not found: " + cast_node<IdentifierNode>(arg)->name);
         auto type = cast_node<IdentifierNode>(arg)->get_llvmtype(context);
         if (type->isArrayTy()) {
-          ptr = context.builder.CreateGEP(ptr, context.builder.getInt32(cast_node<ArrayRefNode>(arg)->index));
-          type = cast_node<ArrayRefNode>(arg)->get_element_type(context);
+          ptr = cast_node<ArrayRefNode>(arg)->get_ptr(context);
+          type = type->getArrayElementType();
         }
         if (type->isIntegerTy(8)) {
           args.push_back(context.builder.CreateGlobalStringPtr("%c"));
@@ -245,13 +245,23 @@ llvm::Value *IdentifierNode::get_ptr(CodegenContext &context) {
   if (value == nullptr) throw CodegenException("identifier not found: " + name);
   return value->get_llvmptr();
 }
+
 llvm::Value *ArrayRefNode::get_ptr(CodegenContext &context) {
   auto value = context.symbolTable.getLocalSymbol(name);
   if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
   if (value == nullptr) throw CodegenException("identifier not found: " + name);
-  auto zero = context.builder.getInt32(0);
-  auto index = context.builder.getInt32(this->index);
-  return context.builder.CreateGEP(value->get_llvmptr(), std::vector<llvm::Value *>{zero, index});
+  return context.builder.CreateGEP(value->get_llvmptr(),
+                                   std::vector<llvm::Value *>{context.builder.getInt32(0), get_index(context)});
+}
+
+llvm::Value *ArrayRefNode::get_index(CodegenContext &context) {
+  auto value = context.symbolTable.getLocalSymbol(name);
+  if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
+  if (value == nullptr) throw CodegenException("identifier not found: " + name);
+  auto bound = cast_node<ArrayTypeNode>(value->typeNode)->bounds;
+  if (!i)
+    return context.builder.getInt32(index - bound.first);
+  return context.builder.CreateSub(i->codegen(context), context.builder.getInt32(bound.first));
 }
 
 llvm::Type *IdentifierNode::get_llvmtype(CodegenContext &context) {
@@ -268,11 +278,6 @@ llvm::Value *IdentifierNode::codegen(CodegenContext &context) {
 llvm::Value *ArrayRefNode::codegen(CodegenContext &context) {
   return context.builder.CreateLoad(get_ptr(context));
 }
-llvm::Type *ArrayRefNode::get_element_type(CodegenContext &context) {
-  auto value = context.symbolTable.getLocalSymbol(name);
-  if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
-  if (value == nullptr) throw CodegenException("identifier not found: " + name);
-  return value->get_elementtype(context); }
 
 /* -------- stmt nodes -------- */
 llvm::Value *AssignStmtNode::codegen(CodegenContext &context) {
