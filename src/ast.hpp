@@ -148,17 +148,17 @@ struct IfStmtNode : public StmtNode
   std::shared_ptr<StmtNode> then_stmt;
   std::shared_ptr<StmtNode> else_stmt;
   
-  IfStmtNode ( const std::shared_ptr<AbstractNode> &exprIf , const std::shared_ptr<AbstractNode> &StmtT
-             ,const std::shared_ptr<AbstractNode> &StmtF) : cond(cast_node<ExprNode>(exprIf)),
-             then_stmt(cast_node<StmtNode>(StmtT)),else_stmt(cast_node<StmtNode>(StmtF)) {}
+  IfStmtNode ( const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &then_stmt
+             ,const std::shared_ptr<AbstractNode> &else_stmt = nullptr) : cond(cast_node<ExprNode>(cond)),
+             then_stmt(cast_node<StmtNode>(then_stmt)), else_stmt(else_stmt ? cast_node<StmtNode>(else_stmt) : nullptr) {}
 
   llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
   bool should_have_children() const override { return false; }
   std::string json_head() const override {
-    return std::string{"\"type\": \"IfStmtNode\", \"expr\": "} + this->cond->to_json() +
-           ", \"stmtT\": " + this->then_stmt->to_json() + ", \"stmtF\": " + this->else_stmt->to_json();
+    return std::string{"\"type\": \"IfStmtNode\", \"cond\": "} + this->cond->to_json() +
+           ", \"then_stmt\": " + this->then_stmt->to_json() + (else_stmt ? (", \"else_stmt\": " + this->else_stmt->to_json()) : "");
   }
 };
 
@@ -390,14 +390,16 @@ struct CharNode : public ConstValueNode {
   std::string json_head() const override { return std::string{"\"type\": \"Char\", \"value\": \""} + val + "\""; }
 };
 
-struct CaseNode : public DummyNode
+struct CaseList : public DummyNode {};
+
+struct CaseNode : public CaseList
 {
  public :
   std::shared_ptr<ConstValueNode> cond;
   std::shared_ptr<StmtNode> stmt;
 
-  CaseNode (const std::shared_ptr<ConstValueNode> &cond, const std::shared_ptr<AbstractNode> &stmt)
-      : cond(cond), stmt(cast_node<StmtNode>(stmt)) {}
+  CaseNode (const std::shared_ptr<AbstractNode> &cond, const std::shared_ptr<AbstractNode> &stmt)
+      : cond(cast_node<ConstValueNode>(cond)), stmt(cast_node<StmtNode>(stmt)) {}
 
   llvm::Value *codegen(CodegenContext &context) override;
 
@@ -414,11 +416,11 @@ struct CaseStmtNode : public StmtNode
 {
  public :
   std::shared_ptr<ExprNode> cond;
-  std::vector<std::shared_ptr<CaseNode>> body;
+  std::shared_ptr<CaseList> body;
   std::shared_ptr<StmtNode> default_stmt;
 
-  CaseStmtNode ( const std::shared_ptr<ExprNode> &cond, const std::shared_ptr<StmtNode> &default_stmt)
-      :cond(cast_node<ExprNode>(cond)), default_stmt(cast_node<StmtNode>(default_stmt)){}
+  CaseStmtNode ( const std::shared_ptr<AbstractNode> &cond, const std::shared_ptr<AbstractNode> &body, const std::shared_ptr<AbstractNode> &default_stmt = nullptr)
+      :cond(cast_node<ExprNode>(cond)), body(cast_node<CaseList>(body)), default_stmt(default_stmt ? cast_node<StmtNode>(default_stmt) : nullptr){}
 
   llvm::Value *codegen(CodegenContext &context) override;
 
@@ -426,9 +428,12 @@ struct CaseStmtNode : public StmtNode
   bool should_have_children() const override { return false; }
   std::string json_head() const override {
     std::string json = "\"type\": \"CaseStmtNode\", \"expr\": "+ this->cond->to_json() + ", \"body\": { ";
-    for (auto case_stmt : body)
-      json += "\"case\": " + case_stmt->cond->to_json() + ", \"stmt\": " + case_stmt->stmt->to_json() + ", ";
-    json += "\"default_stmt\": " + default_stmt -> to_json() + "}";
+    for (auto case_stmt : body->children()) {
+      case_stmt = cast_node<CaseNode>(case_stmt);
+      json += "\"case\": " + case_stmt->to_json() + ',';
+    }
+    if (default_stmt)
+      json += "\"default_stmt\": " + default_stmt -> to_json();
     return json;
   }
 };
