@@ -140,7 +140,17 @@ routine_body
 
 loop_body
     : compound_stmt { $$ = $1; }
+    | stmt_list {$$ = make_node<CompoundStmtNode>(); $$->lift_children($1); }
+    ;
+
+if_body
+    : compound_stmt { $$ = $1; }
     | stmt { $$ = make_node<CompoundStmtNode>(); $$->add_child($1); }
+    ;
+
+case_body
+    : case_body const_value COLON loop_body{ $$ = $1; $$->add_child(make_node<CaseNode>($2, $4)); }
+    | {$$ = make_node<CaseList>(); }
     ;
 
 compound_stmt
@@ -157,6 +167,8 @@ stmt
     : proc_stmt     { $$ = $1; }
     | assign_stmt   { $$ = $1; }
     | loop_stmt     { $$ = $1; }
+    | if_stmt       { $$ = $1; }
+    | case_stmt     { $$ = $1; }
     ;
 
 proc_stmt
@@ -176,9 +188,23 @@ assign_stmt
     : variable ASSIGN expression
         { $$ = make_node<AssignStmtNode>($1, $3); }
     ;
+
+if_stmt
+    : IF expression THEN if_body ELSE if_body { $$ = make_node<IfStmtNode>($2, $4, $6); }
+    | IF expression THEN if_body { $$ = make_node<IfStmtNode>($2, $4); }
+    ;
+
+case_stmt
+    : CASE expression OF case_body END { $$ = make_node<CaseStmtNode>($2, $4); }
+    ;
+
 loop_stmt
     : FOR ID ASSIGN expression TO expression DO loop_body
         { $$ = make_node<LoopStmtNode>(LoopType::FOR, $4, $8, $2, $6); }
+    | FOR ID ASSIGN expression DOWNTO expression DO loop_body
+              { $$ = make_node<LoopStmtNode>(LoopType::FOR, $4, $8, $2, $6); }
+    | WHILE expression DO loop_body { $$ = make_node<LoopStmtNode>(LoopType::WHILE, $2, $4);}
+    | REPEAT loop_body UNTIL expression {$$ = make_node<LoopStmtNode>(LoopType::REPEAT, $4, $2);}
     ;
 
 variable_list

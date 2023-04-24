@@ -215,7 +215,7 @@ llvm::Value *ProgramNode::codegen(CodegenContext &context) {
 
   auto *func_type = llvm::FunctionType::get(context.builder.getInt32Ty(), false);
   auto *main_func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, "main", context.module.get());
-  auto *block = llvm::BasicBlock::Create(context.module->getContext(), "cond", main_func);
+  auto *block = llvm::BasicBlock::Create(context.module->getContext(), "entry", main_func);
   context.builder.SetInsertPoint(block);
   for (auto &stmt : children()) stmt->codegen(context);
   context.builder.CreateRet(context.builder.getInt32(0));
@@ -306,63 +306,68 @@ llvm::Value *ProcStmtNode::codegen(CodegenContext &context) {
 
 llvm::Value *IfStmtNode::codegen(CodegenContext &context) {
   llvm::Value *CondV = cond->codegen(context);
-  CondV = context.builder.CreateFCmpONE(
-      CondV, llvm::ConstantFP::get(context.builder.getDoubleTy(), 0.0), "ifcond");
-
+  CondV = context.builder.CreateICmpEQ(
+      CondV, context.builder.getTrue(), "ifcond");
   llvm::Function *TheFunction = context.builder.GetInsertBlock()->getParent();
   llvm::BasicBlock *ThenBB =
       llvm::BasicBlock::Create(context.module->getContext(), "then", TheFunction);
-  llvm::BasicBlock *ElseBB = llvm::BasicBlock::Create(context.module->getContext(), "else");
+  llvm::BasicBlock *ElseBB = nullptr;
+  if (else_stmt)
+    ElseBB = llvm::BasicBlock::Create(context.module->getContext(), "else");
   llvm::BasicBlock *MergeBB = llvm::BasicBlock::Create(context.module->getContext(), "merge");
-  context.builder.CreateCondBr(CondV, ThenBB, ElseBB);
+  if (else_stmt)
+    context.builder.CreateCondBr(CondV, ThenBB, ElseBB);
+  else
+    context.builder.CreateCondBr(CondV, ThenBB, MergeBB);
 
   context.builder.SetInsertPoint(ThenBB);
   then_stmt->codegen(context);
   context.builder.CreateBr(MergeBB);
-  // ThenBB = context.builder.GetInsertBlock();
 
-  TheFunction->getBasicBlockList().push_back(ElseBB);
-  context.builder.SetInsertPoint(ElseBB);
-  else_stmt->codegen(context);
-  context.builder.CreateBr(MergeBB);
-  // ElseBB = context.builder.GetInsertBlock();
+  if (else_stmt) {
+    TheFunction->getBasicBlockList().push_back(ElseBB);
+    context.builder.SetInsertPoint(ElseBB);
+    else_stmt->codegen(context);
+    context.builder.CreateBr(MergeBB);
+  }
 
   TheFunction->getBasicBlockList().push_back(MergeBB);
   context.builder.SetInsertPoint(MergeBB);
-/*  llvm::PHINode *PN =
-      context.builder.CreatePHI(context.builder.getDoubleTy(), 2, "iftmp");
-  PN->addIncoming(ThenV, ThenBB);
-  PN->addIncoming(ElseV, ElseBB);
-  return PN;*/
   return nullptr;
 }
 
 llvm::Value *CaseStmtNode::codegen(CodegenContext &context) {
   llvm::Value *CondV = cond->codegen(context);
-
   llvm::Function *TheFunction = context.builder.GetInsertBlock()->getParent();
-  llvm::BasicBlock *DefaultBB =
-      llvm::BasicBlock::Create(context.module->getContext(), "default", TheFunction);
+  llvm::BasicBlock *DefaultBB = nullptr;
+  if (default_stmt)
+    DefaultBB = llvm::BasicBlock::Create(context.module->getContext(), "default", TheFunction);
   llvm::BasicBlock *MergeBB =
       llvm::BasicBlock::Create(context.module->getContext(), "merge", TheFunction);
-  auto switch_case = context.builder.CreateSwitch(CondV, DefaultBB, body.size());
-  for (auto branch : body) {
+  auto switch_case = context.builder.CreateSwitch(CondV, DefaultBB, body->children().size());
+  for (auto branch : body->children()) {
+    auto node = cast_node<CaseNode>(branch);
     auto BranchBB = llvm::BasicBlock::Create(context.module->getContext(), "branch", TheFunction);
     context.builder.SetInsertPoint(BranchBB);
-    branch->stmt->codegen(context);
+    node->stmt->codegen(context);
     context.builder.CreateBr(MergeBB);
     //暂时只支持int, char
-    if (is_a_ptr_of<IntegerNode>(branch->cond)){
-      auto int_case = cast_node<IntegerNode>(branch->cond);
+    if (is_a_ptr_of<IntegerNode>(node->cond)){
+      auto int_case = cast_node<IntegerNode>(node->cond);
       switch_case->addCase(context.builder.getInt32(int_case->val), BranchBB);
-    }else if (is_a_ptr_of<CharNode>(branch->cond)){
-      auto char_case = cast_node<CharNode>(branch->cond);
+    }else if (is_a_ptr_of<CharNode>(node->cond)){
+      auto char_case = cast_node<CharNode>(node->cond);
       switch_case->addCase(context.builder.getInt32((int)char_case->val), BranchBB);
     }
   }
-  context.builder.SetInsertPoint(DefaultBB);
-  default_stmt->codegen(context);
-  context.builder.CreateBr(MergeBB);
+
+  if (default_stmt) {
+    context.builder.SetInsertPoint(DefaultBB);
+    default_stmt->codegen(context);
+    context.builder.CreateBr(MergeBB);
+  }
+  else
+    switch_case->setDefaultDest(MergeBB);
 
   context.builder.SetInsertPoint(MergeBB);
   return nullptr;
@@ -397,13 +402,16 @@ llvm::Value *LoopStmtNode::codegen(CodegenContext &context) {
   llvm::BasicBlock *LoopBB = llvm::BasicBlock::Create(context.module->getContext(), "loop", TheFunction);
   llvm::BasicBlock *AfterBB =
         llvm::BasicBlock::Create(context.module->getContext(), "end", TheFunction);
-  context.builder.CreateCondBr(CondV, AfterBB, LoopBB);
+  if (type == LoopType::WHILE)
+    context.builder.CreateCondBr(CondV, LoopBB, AfterBB);
+  else
+    context.builder.CreateCondBr(CondV, AfterBB, LoopBB);
   context.builder.SetInsertPoint(LoopBB);
   loop_stmt->codegen(context);
 
-  if (type == LoopType::REPEAT || type == LoopType::WHILE)
+  if (type == LoopType::REPEAT || type == LoopType::WHILE) {
     CondV = cond->codegen(context);
-  else {
+  } else {
     llvm::Value *one = llvm::ConstantInt::get(EndV->getType(), 1);
     if (type == LoopType::FOR) {
       context.builder.CreateStore(context.builder.CreateAdd(i->codegen(context), one), i->get_ptr(context));
@@ -413,7 +421,10 @@ llvm::Value *LoopStmtNode::codegen(CodegenContext &context) {
       CondV = context.builder.CreateICmpSLT(i->codegen(context), EndV);
     }
   }
-  context.builder.CreateCondBr(CondV, AfterBB, LoopBB);
+  if (type == LoopType::WHILE)
+    context.builder.CreateCondBr(CondV, LoopBB, AfterBB);
+  else
+    context.builder.CreateCondBr(CondV, AfterBB, LoopBB);
   context.builder.SetInsertPoint(AfterBB);
   return nullptr;
 }
