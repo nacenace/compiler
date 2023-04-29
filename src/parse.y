@@ -143,6 +143,11 @@ loop_body
     | stmt_list {$$ = make_node<CompoundStmtNode>(); $$->lift_children($1); }
     ;
 
+for_body
+    : compound_stmt { $$ = $1; }
+    | stmt { $$ = make_node<CompoundStmtNode>(); $$->add_child($1); }
+    ;
+
 if_body
     : compound_stmt { $$ = $1; }
     | stmt { $$ = make_node<CompoundStmtNode>(); $$->add_child($1); }
@@ -199,9 +204,9 @@ case_stmt
     ;
 
 loop_stmt
-    : FOR ID ASSIGN expression TO expression DO loop_body
+    : FOR ID ASSIGN expression TO expression DO for_body
         { $$ = make_node<LoopStmtNode>(LoopType::FOR, $4, $8, $2, $6); }
-    | FOR ID ASSIGN expression DOWNTO expression DO loop_body
+    | FOR ID ASSIGN expression DOWNTO expression DO for_body
               { $$ = make_node<LoopStmtNode>(LoopType::FOR, $4, $8, $2, $6); }
     | WHILE expression DO loop_body { $$ = make_node<LoopStmtNode>(LoopType::WHILE, $2, $4);}
     | REPEAT loop_body UNTIL expression {$$ = make_node<LoopStmtNode>(LoopType::REPEAT, $4, $2);}
