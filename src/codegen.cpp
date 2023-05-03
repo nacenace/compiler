@@ -246,6 +246,13 @@ llvm::Value *IdentifierNode::get_ptr(CodegenContext &context) {
   return value->get_llvmptr();
 }
 
+std::shared_ptr<TypeNode> IdentifierNode::get_alias(CodegenContext &context) {
+  auto type = context.symbolTable.getLocalAlias(name);
+  if (type == nullptr) type = context.symbolTable.getGlobalAlias(name);
+  if (type == nullptr) throw CodegenException("identifier not found: " + name);
+  return type;
+}
+
 llvm::Value *ArrayRefNode::get_ptr(CodegenContext &context) {
   auto value = context.symbolTable.getLocalSymbol(name);
   if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
@@ -480,6 +487,8 @@ llvm::Value *VarListNode::codegen(CodegenContext &context) {
 }
 
 llvm::Value *VarDeclNode::codegen(CodegenContext &context) {
+  if (typeName)
+    type = typeName->get_alias(context);
   if (context.is_subroutine)  //如果是子过程 分配临时变量
   {
     bool success = context.symbolTable.addLocalSymbol(name->name, type);
