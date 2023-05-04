@@ -127,6 +127,9 @@ var_decl
     : name_list COLON type_decl SEMI
         { $$ = make_node<VarListNode>();
           for (auto name : $1->children()) $$->add_child(make_node<VarDeclNode>(name, $3)); }
+    | name_list COLON ID SEMI
+        { $$ = make_node<VarListNode>();
+          for (auto name : $1->children()) $$->add_child(make_node<VarDeclNode>(name, $3)); }
     ;
 
 name_list

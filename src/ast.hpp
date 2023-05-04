@@ -173,6 +173,7 @@ struct IdentifierNode : public LeftValueExprNode {
   llvm::Value *get_ptr(CodegenContext &context) override;
   llvm::Type *get_llvmtype(CodegenContext &context);
   llvm::Value *codegen(CodegenContext &context) override;
+  std::shared_ptr<TypeNode> get_alias(CodegenContext &context);
 
  protected:
   std::string json_head() const override {
@@ -294,6 +295,11 @@ struct ArrayTypeNode : public TypeNode {
   }
   virtual std::string json_head() const override;
   virtual  bool should_have_children() const override { return false; }
+};
+
+struct CompositeTypeNode : public TypeNode {
+ public:
+  std::shared_ptr<TypeNode> typeList;
 };
 
 struct ConstValueNode : public ExprNode {
@@ -554,16 +560,19 @@ struct VarDeclNode : public DummyNode {
   std::shared_ptr<IdentifierNode> name;
   /// 变量类型
   std::shared_ptr<TypeNode> type;
+  std::shared_ptr<IdentifierNode> typeName;
 
   VarDeclNode(const std::shared_ptr<AbstractNode> &name, const std::shared_ptr<AbstractNode> &type)
-      : name(cast_node<IdentifierNode>(name)), type(cast_node<TypeNode>(type)) {}
+      : name(cast_node<IdentifierNode>(name)),
+        type(is_a_ptr_of<TypeNode>(type) ? cast_node<TypeNode>(type) : nullptr),
+        typeName(is_a_ptr_of<IdentifierNode>(type) ? cast_node<IdentifierNode>(type) : nullptr) {}
 
   llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
   std::string json_head() const override {
     return std::string{"\"type\": \"VarDecl\", \"name\": "} + this->name->to_json() +
-           ", \"decl\": " + this->type->to_json();
+           ", \"decl\": " + (this->type ? this->type->to_json() : this->typeName->to_json());
   }
 
   bool should_have_children() const override { return false; }
