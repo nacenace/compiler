@@ -4,10 +4,8 @@ const
   ONE = 1;
   TWO = 2;
 
-type
-  int = integer;
 var
-  x, y, i: int;
+  x, y, i: integer;
 
 begin
   readln(x, y);
