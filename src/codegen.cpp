@@ -178,6 +178,8 @@ static llvm::Type *llvm_type(Type type, CodegenContext &context) {
       return context.builder.getDoubleTy();
     case Type::CHAR:
       return context.builder.getInt8Ty();
+    case Type::VOID:
+      return context.builder.getVoidTy();
     default:
       return nullptr;
   }
@@ -200,7 +202,17 @@ llvm::Type *TypeNode::get_llvm_type(CodegenContext &context) const {
   throw CodegenException("unsupported type: " + type2string(type));
   return nullptr;  // 这里永远不会运行
 }
-
+/* -------- routine call nodes -------- */
+llvm::Value *RoutineCallNode::codegen(CodegenContext &context) {
+  auto *func = context.module->getFunction(identifier->name);
+  if (func->arg_size() != args->children().size()) {
+    throw CodegenException("wrong number of arguments: " + identifier->name + "()");
+  }
+  std::vector<llvm::Value *> values;
+  // TODO: check type compatibility between arguments and parameters
+  for (auto &arg : args->children()) values.push_back(arg->codegen(context));
+  return context.builder.CreateCall(func, values);
+}
 /* -------- routine nodes -------- */
 llvm::Value *ProgramNode::codegen(CodegenContext &context) {
   context.is_subroutine = false;
@@ -208,10 +220,8 @@ llvm::Value *ProgramNode::codegen(CodegenContext &context) {
   head_list->type_list->codegen(context);
   head_list->var_list->codegen(context);
 
-  /*
   context.is_subroutine = true;
   head_list->subroutine_list->codegen(context);
-  */
   context.is_subroutine = false;
 
   auto *func_type = llvm::FunctionType::get(context.builder.getInt32Ty(), false);
@@ -231,11 +241,67 @@ llvm::Value *ProgramNode::codegen(CodegenContext &context) {
   return nullptr;
 }
 
+llvm::Value *SubroutineNode::codegen(CodegenContext &context) {
+  std::vector<llvm::Type *> llvmTypes;
+  std::vector<std::string> names;
+  std::vector<std::shared_ptr<TypeNode>> types;
+  for (auto child : params->children()) {
+    auto decl = cast_node<ParamDeclNode>(child);
+    types.push_back(decl->type);
+    llvmTypes.push_back(decl->type->get_llvm_type(context));
+    names.push_back(decl->name->name);
+  }
+  auto *func_type = llvm::FunctionType::get(return_type->get_llvm_type(context), llvmTypes, false);
+  auto *func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, name->name, context.module.get());
+  auto *block = llvm::BasicBlock::Create(context.module->getContext(), "entry", func);
+  context.builder.SetInsertPoint(block);
+
+  //将形参匹配到实参
+  auto index = 0;
+  for (auto &arg : func->args()) {
+    std::string argName = names[index];
+    auto &argType = types[index];
+    context.symbolTable.addLocalSymbol(argName, argType);
+    auto ptr = context.symbolTable.getLocalSymbol(argName)->get_llvmptr();
+    context.builder.CreateStore(&arg, ptr);
+    index += 1;
+  }
+  if (return_type->type != Type::VOID) {
+    context.symbolTable.addLocalSymbol(name->name, return_type);
+  }
+
+  head_list->codegen(context);
+  for (auto &stmt : children()) stmt->codegen(context);
+
+  if (return_type->type == Type::VOID) {
+    context.builder.CreateRetVoid();
+  } else  //处理返回值
+  {
+    auto local = context.symbolTable.getLocalSymbol(name->name);  //根据Pascal的规则，对函数名的赋值即为返回值
+    // auto *local = context.get_local(name->name);  //根据Pascal的规则，对函数名的赋值即为返回值
+    auto *ret = context.builder.CreateLoad(local->get_llvmptr());
+    context.builder.CreateRet(ret);
+  }
+
+  llvm::verifyFunction(*func);
+  if (context.fpm) {
+    context.fpm->run(*func);
+  }
+
+  context.symbolTable.resetLocals();  //清除局部信息 为下一个函数的生成做准备
+  return nullptr;
+}
+
 llvm::Value *HeadListNode::codegen(CodegenContext &context) {
   const_list->codegen(context);
   type_list->codegen(context);
   var_list->codegen(context);
-  // subroutine_list->codegen(context);
+  subroutine_list->codegen(context);
+  return nullptr;
+}
+
+llvm::Value *SubroutineListNode::codegen(CodegenContext &context) {
+  for (auto &routine : children()) routine->codegen(context);
   return nullptr;
 }
 

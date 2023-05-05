@@ -3,9 +3,10 @@ const
   ZERO = 0;
   ONE = 1;
   TWO = 2;
-
+type
+  int = integer;
 var
-  x, y, i: integer;
+  x, y, i: int;
 
 begin
   readln(x, y);

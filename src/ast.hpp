@@ -53,9 +53,11 @@ struct TypeListNode;
 // 结构语句相关
 struct NameListNode;
 struct RoutineCallNode;
+struct SubroutineListNode;
 struct HeadListNode;
 struct RoutineNode;
 struct ProgramNode;
+struct SubroutineNode;
 struct CompoundStmtNode;
 struct AssignStmtNode;
 struct ProcStmtNode;
@@ -75,7 +77,6 @@ template <typename TNode>
 typename std::enable_if<std::is_base_of<AbstractNode, TNode>::value, std::shared_ptr<TNode>>::type cast_node(
     const std::shared_ptr<AbstractNode> &node) {
   if (is_a_ptr_of<TNode>(node)) return std::dynamic_pointer_cast<TNode>(node);
-  // std::string nodeTypeName = typeid(*node.get()).name();
   assert(is_a_ptr_of<TNode>(node));
   return nullptr;
 }
@@ -252,6 +253,7 @@ struct LoopStmtNode : public StmtNode {
 enum class Type {
   /// 未定义
   UNDEFINED,
+  VOID,
   /// 字符串
   STRING,
   BOOLEN,
@@ -693,6 +695,7 @@ struct RoutineCallNode : public DummyNode {
 
   explicit RoutineCallNode(const std::shared_ptr<AbstractNode> &identifier)
       : RoutineCallNode(identifier, make_node<ArgListNode>()) {}
+  llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
   std::string json_head() const override {
@@ -703,26 +706,38 @@ struct RoutineCallNode : public DummyNode {
   bool should_have_children() const final { return false; }
 };
 
+/// 子过程列表
+struct SubroutineListNode : public DummyNode {
+ public:
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override { return std::string{"\"type\": \"SubroutineList\""}; }
+
+  bool should_have_children() const final { return true; }
+};
+
 struct HeadListNode : public DummyNode {
  public:
   using NodePtr = std::shared_ptr<AbstractNode>;
   std::shared_ptr<ConstListNode> const_list;
   std::shared_ptr<TypeListNode> type_list;
   std::shared_ptr<VarListNode> var_list;
-  // std::shared_ptr<SubroutineListNode> subroutine_list;
+  std::shared_ptr<SubroutineListNode> subroutine_list;
 
-  HeadListNode(const NodePtr &consts, const NodePtr &types, const NodePtr &vars /*, const NodePtr &subroutines */)
+  HeadListNode(const NodePtr &consts, const NodePtr &types, const NodePtr &vars, const NodePtr &subroutines)
       : const_list(cast_node<ConstListNode>(consts)),
         type_list(cast_node<TypeListNode>(types)),
-        var_list(cast_node<VarListNode>(vars))
-  /*, subroutine_list(cast_node<SubroutineListNode>(subroutines)) */ {}
+        var_list(cast_node<VarListNode>(vars)),
+        subroutine_list(cast_node<SubroutineListNode>(subroutines)) {}
 
   llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
   std::string json_head() const override {
     return std::string{"\"type\": \"HeadList\", \"consts\": "} + this->const_list->to_json() +
-           ", \"types\": " + this->type_list->to_json() + ", \"vars\": " + this->var_list->to_json();
+           ", \"types\": " + this->type_list->to_json() + ", \"vars\": " + this->var_list->to_json() +
+           ", \"subroutines\": " + this->subroutine_list->to_json();
   }
 
   bool should_have_children() const final { return false; }
@@ -753,6 +768,26 @@ struct ProgramNode : public RoutineNode {
  protected:
   std::string json_head() const override {
     return std::string{"\"type\": \"Program\", \"name\": "} + this->name->to_json() +
+           ", \"head\": " + this->head_list->to_json();
+  }
+};
+
+struct SubroutineNode : public RoutineNode {
+ public:
+  std::shared_ptr<ParamListNode> params;
+  std::shared_ptr<TypeNode> return_type;
+
+  SubroutineNode(const NodePtr &name, const NodePtr &params, const NodePtr &type, const NodePtr &head_list)
+      : RoutineNode(name, head_list), params(cast_node<ParamListNode>(params)), return_type(cast_node<TypeNode>(type)) {
+    assert(is_a_ptr_of<SimpleTypeNode>(type) || is_a_ptr_of<AliasTypeNode>(type));
+  }
+
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override {
+    return std::string{"\"type\": \"Subroutine\", \"name\": "} + this->name->to_json() +
+           ", \"params\": " + this->params->to_json() + ", \"return\": " + this->return_type->to_json() +
            ", \"head\": " + this->head_list->to_json();
   }
 };

@@ -62,8 +62,8 @@ program
     ;
 
 routine_head
-    : const_part type_part var_part
-        { $$ = make_node<HeadListNode>($1, $2, $3); }
+    : const_part type_part var_part routine_part
+        { $$ = make_node<HeadListNode>($1, $2, $3, $4); }
     ;
 
 const_part
@@ -128,6 +128,44 @@ var_decl
     : name_list COLON type_decl SEMI
         { $$ = make_node<VarListNode>();
           for (auto name : $1->children()) $$->add_child(make_node<VarDeclNode>(name, $3)); }
+    ;
+
+routine_part: routine_part function_decl { $$ = $1; $$->add_child($2); }
+    | routine_part procedure_decl { $$ = $1; $$->add_child($2); }
+    | { $$ = make_node<SubroutineListNode>(); }
+    ;
+
+function_decl
+    : FUNCTION ID parameters COLON simple_type_decl SEMI routine_head routine_body SEMI
+        { $$ = make_node<SubroutineNode>($2, $3, $5, $7); $$->lift_children($8); }
+    ;
+
+procedure_decl
+    : PROCEDURE ID parameters SEMI routine_head routine_body SEMI
+        { $$ = make_node<SubroutineNode>($2, $3, make_node<SimpleTypeNode>(Type::VOID), $5); $$->lift_children($6); }
+    ;
+
+parameters
+    : LP para_decl_list RP { $$ = $2; }
+    | LP RP { $$ = make_node<ParamListNode>(); }
+    | { $$ = make_node<ParamListNode>(); }
+    ;
+
+para_decl_list
+    : para_decl_list SEMI para_type_list { $$ = $1; $$->lift_children($3); }
+    | para_type_list { $$ = $1; }
+    ;
+
+para_type_list
+    : var_para_list COLON simple_type_decl
+        { $$ = make_node<ParamListNode>();
+          for (auto name : $1->children()) $$->add_child(make_node<ParamDeclNode>(name, $3)); }
+    ;
+
+// TODO: distinguish var and const
+var_para_list
+    : VAR name_list { $$ = $2; }
+    | name_list { $$ = $1; }
     ;
 
 name_list
