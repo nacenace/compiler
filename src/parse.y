@@ -111,6 +111,7 @@ type_decl
 
 simple_type_decl
     : SYS_TYPE { $$ = $1; }
+    | ID { $$ = make_node<AliasTypeNode>($1); }
     ;
 
 var_part

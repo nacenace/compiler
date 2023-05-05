@@ -27,6 +27,7 @@ struct IdentifierNode;
 struct TypeNode;
 struct SimpleTypeNode;
 struct StringTypeNode;
+struct AliasTypeNode;
 struct ArrayTypeNode;
 struct ConstValueNode;
 // 字面量相关
@@ -41,6 +42,8 @@ struct FuncExprNode;
 struct SysRoutineNode;
 struct SysCallNode;
 struct ArgListNode;
+struct ParamDeclNode;
+struct ParamListNode;
 struct VarDeclNode;
 struct VarListNode;
 struct ConstDeclNode;
@@ -141,16 +144,17 @@ struct StmtNode : public DummyNode {
   StmtNode() = default;
 };
 
-struct IfStmtNode : public StmtNode
-{
- public :
+struct IfStmtNode : public StmtNode {
+ public:
   std::shared_ptr<ExprNode> cond;
   std::shared_ptr<StmtNode> then_stmt;
   std::shared_ptr<StmtNode> else_stmt;
-  
-  IfStmtNode ( const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &then_stmt
-             ,const std::shared_ptr<AbstractNode> &else_stmt = nullptr) : cond(cast_node<ExprNode>(cond)),
-             then_stmt(cast_node<StmtNode>(then_stmt)), else_stmt(else_stmt ? cast_node<StmtNode>(else_stmt) : nullptr) {}
+
+  IfStmtNode(const std::shared_ptr<AbstractNode> &cond, const std::shared_ptr<AbstractNode> &then_stmt,
+             const std::shared_ptr<AbstractNode> &else_stmt = nullptr)
+      : cond(cast_node<ExprNode>(cond)),
+        then_stmt(cast_node<StmtNode>(then_stmt)),
+        else_stmt(else_stmt ? cast_node<StmtNode>(else_stmt) : nullptr) {}
 
   llvm::Value *codegen(CodegenContext &context) override;
 
@@ -158,7 +162,8 @@ struct IfStmtNode : public StmtNode
   bool should_have_children() const override { return false; }
   std::string json_head() const override {
     return std::string{"\"type\": \"IfStmtNode\", \"cond\": "} + this->cond->to_json() +
-           ", \"then_stmt\": " + this->then_stmt->to_json() + (else_stmt ? (", \"else_stmt\": " + this->else_stmt->to_json()) : "");
+           ", \"then_stmt\": " + this->then_stmt->to_json() +
+           (else_stmt ? (", \"else_stmt\": " + this->else_stmt->to_json()) : "");
   }
 };
 
@@ -182,7 +187,7 @@ struct IdentifierNode : public LeftValueExprNode {
   bool should_have_children() const override { return false; }
 };
 
-struct ArrayRefNode : public IdentifierNode{
+struct ArrayRefNode : public IdentifierNode {
  public:
   int index;
   std::shared_ptr<IdentifierNode> i = nullptr;
@@ -200,21 +205,17 @@ struct ArrayRefNode : public IdentifierNode{
   }
 };
 
-enum class LoopType{
-  REPEAT,
-  WHILE,
-  FOR,
-  FORDOWN
-};
+enum class LoopType { REPEAT, WHILE, FOR, FORDOWN };
 
 inline std::string to_string(LoopType loopType) {
-  std::map<LoopType, std::string> loop_to_string{{LoopType::REPEAT, "Repeat"}, {LoopType::WHILE, "While"},
-                                                 {LoopType::FOR, "for"},       {LoopType::FORDOWN, "for_down"}};
+  std::map<LoopType, std::string> loop_to_string{{LoopType::REPEAT, "Repeat"},
+                                                 {LoopType::WHILE, "While"},
+                                                 {LoopType::FOR, "for"},
+                                                 {LoopType::FORDOWN, "for_down"}};
   return loop_to_string[loopType];
 }
 
-struct LoopStmtNode : public StmtNode
-{
+struct LoopStmtNode : public StmtNode {
  public:
   LoopType type;
   std::shared_ptr<IdentifierNode> i;
@@ -222,13 +223,16 @@ struct LoopStmtNode : public StmtNode
   std::shared_ptr<ExprNode> bound;
   std::shared_ptr<StmtNode> loop_stmt;
 
-  LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &loop_stmt)
-      : type(type), cond(cast_node<ExprNode>(cond)), loop_stmt(cast_node<StmtNode>(loop_stmt)){}
+  LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond, const std::shared_ptr<AbstractNode> &loop_stmt)
+      : type(type), cond(cast_node<ExprNode>(cond)), loop_stmt(cast_node<StmtNode>(loop_stmt)) {}
 
-  LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond , const std::shared_ptr<AbstractNode> &loop_stmt,
+  LoopStmtNode(LoopType type, const std::shared_ptr<AbstractNode> &cond, const std::shared_ptr<AbstractNode> &loop_stmt,
                std::shared_ptr<AbstractNode> &i, const std::shared_ptr<AbstractNode> &bound)
-      : type(type), cond(cast_node<ExprNode>(cond)), loop_stmt(cast_node<StmtNode>(loop_stmt)), i(cast_node<IdentifierNode>(i)),
-        bound(cast_node<ExprNode>(bound)){}
+      : type(type),
+        cond(cast_node<ExprNode>(cond)),
+        loop_stmt(cast_node<StmtNode>(loop_stmt)),
+        i(cast_node<IdentifierNode>(i)),
+        bound(cast_node<ExprNode>(bound)) {}
 
   llvm::Value *codegen(CodegenContext &context) override;
 
@@ -236,8 +240,8 @@ struct LoopStmtNode : public StmtNode
   bool should_have_children() const override { return false; }
   std::string json_head() const override {
     if (type == LoopType::FOR || type == LoopType::FORDOWN)
-      return std::string{"\"type\": \"" + to_string(type) + "StmtNode\", \"head\": Identifier "} +
-             this->i->name + " from " + this->cond->to_json() + " to " + this->bound->to_json() +
+      return std::string{"\"type\": \"" + to_string(type) + "StmtNode\", \"head\": Identifier "} + this->i->name +
+             " from " + this->cond->to_json() + " to " + this->bound->to_json() +
              "\", \"stmt\": " + this->loop_stmt->to_json();
     else
       return std::string{"\"type\": \"" + to_string(type) + "StmtNode\", \"expr\": "} + this->cond->to_json() +
@@ -282,18 +286,27 @@ struct StringTypeNode : public TypeNode {
   virtual bool should_have_children() const override { return false; }
 };
 
+struct AliasTypeNode : public TypeNode {
+ public:
+  using NodePtr = std::shared_ptr<AbstractNode>;
+  std::shared_ptr<IdentifierNode> identifier;
+
+  AliasTypeNode(const NodePtr &identifier) : identifier(cast_node<IdentifierNode>(identifier)) {}
+  virtual std::string json_head() const override;
+  virtual bool should_have_children() const override { return false; }
+};
+
 struct ArrayTypeNode : public TypeNode {
  public:
   std::shared_ptr<TypeNode> elementType;
   //存储各维度的上下界，非整数形式的上下界转换为整数存储
   std::pair<int, int> bounds;
-  ArrayTypeNode(const std::shared_ptr<AbstractNode> &elementType,
-                std::pair<int, int> bounds)
-      : elementType(cast_node<TypeNode>(elementType)), bounds(bounds){
+  ArrayTypeNode(const std::shared_ptr<AbstractNode> &elementType, std::pair<int, int> bounds)
+      : elementType(cast_node<TypeNode>(elementType)), bounds(bounds) {
     type = Type::ARRAY;
   }
   virtual std::string json_head() const override;
-  virtual  bool should_have_children() const override { return false; }
+  virtual bool should_have_children() const override { return false; }
 };
 
 struct ConstValueNode : public ExprNode {
@@ -392,13 +405,12 @@ struct CharNode : public ConstValueNode {
 
 struct CaseList : public DummyNode {};
 
-struct CaseNode : public CaseList
-{
- public :
+struct CaseNode : public CaseList {
+ public:
   std::shared_ptr<ConstValueNode> cond;
   std::shared_ptr<StmtNode> stmt;
 
-  CaseNode (const std::shared_ptr<AbstractNode> &cond, const std::shared_ptr<AbstractNode> &stmt)
+  CaseNode(const std::shared_ptr<AbstractNode> &cond, const std::shared_ptr<AbstractNode> &stmt)
       : cond(cast_node<ConstValueNode>(cond)), stmt(cast_node<StmtNode>(stmt)) {}
 
   llvm::Value *codegen(CodegenContext &context) override;
@@ -412,28 +424,29 @@ struct CaseNode : public CaseList
   bool should_have_children() const override { return false; }
 };
 
-struct CaseStmtNode : public StmtNode
-{
- public :
+struct CaseStmtNode : public StmtNode {
+ public:
   std::shared_ptr<ExprNode> cond;
   std::shared_ptr<CaseList> body;
   std::shared_ptr<StmtNode> default_stmt;
 
-  CaseStmtNode ( const std::shared_ptr<AbstractNode> &cond, const std::shared_ptr<AbstractNode> &body, const std::shared_ptr<AbstractNode> &default_stmt = nullptr)
-      :cond(cast_node<ExprNode>(cond)), body(cast_node<CaseList>(body)), default_stmt(default_stmt ? cast_node<StmtNode>(default_stmt) : nullptr){}
+  CaseStmtNode(const std::shared_ptr<AbstractNode> &cond, const std::shared_ptr<AbstractNode> &body,
+               const std::shared_ptr<AbstractNode> &default_stmt = nullptr)
+      : cond(cast_node<ExprNode>(cond)),
+        body(cast_node<CaseList>(body)),
+        default_stmt(default_stmt ? cast_node<StmtNode>(default_stmt) : nullptr) {}
 
   llvm::Value *codegen(CodegenContext &context) override;
 
  protected:
   bool should_have_children() const override { return false; }
   std::string json_head() const override {
-    std::string json = "\"type\": \"CaseStmtNode\", \"expr\": "+ this->cond->to_json() + ", \"body\": { ";
+    std::string json = "\"type\": \"CaseStmtNode\", \"expr\": " + this->cond->to_json() + ", \"body\": { ";
     for (auto case_stmt : body->children()) {
       case_stmt = cast_node<CaseNode>(case_stmt);
       json += "\"case\": " + case_stmt->to_json() + ',';
     }
-    if (default_stmt)
-      json += "\"default_stmt\": " + default_stmt -> to_json();
+    if (default_stmt) json += "\"default_stmt\": " + default_stmt->to_json();
     return json;
   }
 };
@@ -543,6 +556,35 @@ struct SysCallNode : public DummyNode {
 struct ArgListNode : public DummyNode {
  protected:
   std::string json_head() const override { return std::string{"\"type\": \"ArgList\""}; }
+
+  bool should_have_children() const override { return true; }
+};
+
+struct ParamDeclNode : public DummyNode {
+ public:
+  using NodePtr = std::shared_ptr<AbstractNode>;
+  /// 程序名
+  std::shared_ptr<IdentifierNode> name;
+  /// 返回类型
+  std::shared_ptr<TypeNode> type;
+
+  ParamDeclNode(const NodePtr &name, const NodePtr &type)
+      : name(cast_node<IdentifierNode>(name)), type(cast_node<TypeNode>(type)) {
+    assert(is_a_ptr_of<SimpleTypeNode>(type) || is_a_ptr_of<AliasTypeNode>(type));
+  }
+
+ protected:
+  std::string json_head() const override {
+    return std::string{"\"type\": \"ParamDecl\", \"name\": "} + this->name->to_json() +
+           ", \"decl\": " + this->type->to_json();
+  }
+
+  bool should_have_children() const override { return false; }
+};
+/// 程序列表语义节点
+struct ParamListNode : public DummyNode {
+ protected:
+  std::string json_head() const override { return std::string{"\"type\": \"ParamList\""}; }
 
   bool should_have_children() const override { return true; }
 };
@@ -734,8 +776,7 @@ struct AssignStmtNode : public StmtNode {
 
   AssignStmtNode(const NodePtr &lhs, const NodePtr &rhs)
       : lhs(cast_node<ExprNode>(lhs)), rhs(cast_node<ExprNode>(rhs)) {
-    assert(is_a_ptr_of<IdentifierNode>(lhs)
-            || is_a_ptr_of<ArrayRefNode>(lhs) /* || is_a_ptr_of<RecordRefNode>(lhs) */);
+    assert(is_a_ptr_of<IdentifierNode>(lhs) || is_a_ptr_of<ArrayRefNode>(lhs) /* || is_a_ptr_of<RecordRefNode>(lhs) */);
   }
 
   llvm::Value *codegen(CodegenContext &context) override;
@@ -769,6 +810,5 @@ struct ProcStmtNode : public StmtNode {
 
 struct StmtList : public StmtNode {};
 }  // namespace spc
-
 
 #endif

@@ -10,9 +10,9 @@
 // used by decl nodes
 #include <fmt/core.h>
 
+#include "ast.hpp"
 #include "context.hpp"
 #include "symbol.hpp"
-#include "ast.hpp"
 
 namespace spc {
 /* -------- syscall nodes -------- */
@@ -27,8 +27,7 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
         auto value = arg->codegen(context);
         std::vector<llvm::Value *> args;
         auto type = value->getType();
-        if (type->isArrayTy())
-          type = type->getArrayElementType();
+        if (type->isArrayTy()) type = type->getArrayElementType();
         if (type->isIntegerTy(8)) {
           args.push_back(context.builder.CreateGlobalStringPtr("%c"));
           args.push_back(value);
@@ -191,9 +190,11 @@ llvm::Type *ConstValueNode::get_llvm_type(CodegenContext &context) const { retur
 llvm::Type *TypeNode::get_llvm_type(CodegenContext &context) const {
   if (auto *simple_type = dynamic_cast<const SimpleTypeNode *>(this)) {
     return llvm_type(simple_type->type, context);
-  }else if (auto *array_type = dynamic_cast<const ArrayTypeNode *>(this)){
+  } else if (auto *array_type = dynamic_cast<const ArrayTypeNode *>(this)) {
     auto length = array_type->bounds.second - array_type->bounds.first + 1;
     return llvm_type(array_type->elementType->type, length, context);
+  } else if (auto *alias = dynamic_cast<const AliasTypeNode *>(this)) {
+    return context.symbolTable.getGlobalAlias(alias->identifier->name)->get_llvm_type(context);
   }
 
   throw CodegenException("unsupported type: " + type2string(type));
@@ -259,8 +260,7 @@ llvm::Value *ArrayRefNode::get_index(CodegenContext &context) {
   if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
   if (value == nullptr) throw CodegenException("identifier not found: " + name);
   auto bound = cast_node<ArrayTypeNode>(value->typeNode)->bounds;
-  if (!i)
-    return context.builder.getInt32(index - bound.first);
+  if (!i) return context.builder.getInt32(index - bound.first);
   return context.builder.CreateSub(i->codegen(context), context.builder.getInt32(bound.first));
 }
 
@@ -271,13 +271,9 @@ llvm::Type *IdentifierNode::get_llvmtype(CodegenContext &context) {
   return value->get_llvmtype(context);
 }
 
-llvm::Value *IdentifierNode::codegen(CodegenContext &context) {
-  return context.builder.CreateLoad(get_ptr(context));
-}
+llvm::Value *IdentifierNode::codegen(CodegenContext &context) { return context.builder.CreateLoad(get_ptr(context)); }
 
-llvm::Value *ArrayRefNode::codegen(CodegenContext &context) {
-  return context.builder.CreateLoad(get_ptr(context));
-}
+llvm::Value *ArrayRefNode::codegen(CodegenContext &context) { return context.builder.CreateLoad(get_ptr(context)); }
 
 /* -------- stmt nodes -------- */
 llvm::Value *AssignStmtNode::codegen(CodegenContext &context) {
@@ -306,14 +302,11 @@ llvm::Value *ProcStmtNode::codegen(CodegenContext &context) {
 
 llvm::Value *IfStmtNode::codegen(CodegenContext &context) {
   llvm::Value *CondV = cond->codegen(context);
-  CondV = context.builder.CreateICmpEQ(
-      CondV, context.builder.getTrue(), "ifcond");
+  CondV = context.builder.CreateICmpEQ(CondV, context.builder.getTrue(), "ifcond");
   llvm::Function *TheFunction = context.builder.GetInsertBlock()->getParent();
-  llvm::BasicBlock *ThenBB =
-      llvm::BasicBlock::Create(context.module->getContext(), "then", TheFunction);
+  llvm::BasicBlock *ThenBB = llvm::BasicBlock::Create(context.module->getContext(), "then", TheFunction);
   llvm::BasicBlock *ElseBB = nullptr;
-  if (else_stmt)
-    ElseBB = llvm::BasicBlock::Create(context.module->getContext(), "else");
+  if (else_stmt) ElseBB = llvm::BasicBlock::Create(context.module->getContext(), "else");
   llvm::BasicBlock *MergeBB = llvm::BasicBlock::Create(context.module->getContext(), "merge");
   if (else_stmt)
     context.builder.CreateCondBr(CondV, ThenBB, ElseBB);
@@ -340,10 +333,8 @@ llvm::Value *CaseStmtNode::codegen(CodegenContext &context) {
   llvm::Value *CondV = cond->codegen(context);
   llvm::Function *TheFunction = context.builder.GetInsertBlock()->getParent();
   llvm::BasicBlock *DefaultBB = nullptr;
-  if (default_stmt)
-    DefaultBB = llvm::BasicBlock::Create(context.module->getContext(), "default", TheFunction);
-  llvm::BasicBlock *MergeBB =
-      llvm::BasicBlock::Create(context.module->getContext(), "merge", TheFunction);
+  if (default_stmt) DefaultBB = llvm::BasicBlock::Create(context.module->getContext(), "default", TheFunction);
+  llvm::BasicBlock *MergeBB = llvm::BasicBlock::Create(context.module->getContext(), "merge", TheFunction);
   auto switch_case = context.builder.CreateSwitch(CondV, DefaultBB, body->children().size());
   for (auto branch : body->children()) {
     auto node = cast_node<CaseNode>(branch);
@@ -352,10 +343,10 @@ llvm::Value *CaseStmtNode::codegen(CodegenContext &context) {
     node->stmt->codegen(context);
     context.builder.CreateBr(MergeBB);
     //暂时只支持int, char
-    if (is_a_ptr_of<IntegerNode>(node->cond)){
+    if (is_a_ptr_of<IntegerNode>(node->cond)) {
       auto int_case = cast_node<IntegerNode>(node->cond);
       switch_case->addCase(context.builder.getInt32(int_case->val), BranchBB);
-    }else if (is_a_ptr_of<CharNode>(node->cond)){
+    } else if (is_a_ptr_of<CharNode>(node->cond)) {
       auto char_case = cast_node<CharNode>(node->cond);
       switch_case->addCase(context.builder.getInt32((int)char_case->val), BranchBB);
     }
@@ -365,15 +356,14 @@ llvm::Value *CaseStmtNode::codegen(CodegenContext &context) {
     context.builder.SetInsertPoint(DefaultBB);
     default_stmt->codegen(context);
     context.builder.CreateBr(MergeBB);
-  }
-  else
+  } else
     switch_case->setDefaultDest(MergeBB);
 
   context.builder.SetInsertPoint(MergeBB);
   return nullptr;
 }
 
-std::string type2string(CodegenContext &context, llvm::Type *type){
+std::string type2string(CodegenContext &context, llvm::Type *type) {
   if (type->isIntegerTy(8))
     return "char";
   else if (type->isIntegerTy(32))
@@ -387,21 +377,22 @@ llvm::Value *LoopStmtNode::codegen(CodegenContext &context) {
   if (type == LoopType::REPEAT) loop_stmt->codegen(context);
   llvm::Value *CondV = cond->codegen(context);
   llvm::Value *EndV = nullptr;
-  if (type == LoopType::FOR || type == LoopType::FORDOWN){
+  if (type == LoopType::FOR || type == LoopType::FORDOWN) {
     if (CondV->getType() != i->get_ptr(context)->getType()->getPointerElementType())
       throw CodegenException("incompatible type in assignments: " + i->name);
     EndV = bound->codegen(context);
     if (EndV->getType() != CondV->getType())
-      throw CodegenException("incompatible type in for-do: read " + type2string(context, EndV->getType())
-                             + ", expected " + type2string(context, CondV->getType()));
+      throw CodegenException("incompatible type in for-do: read " + type2string(context, EndV->getType()) +
+                             ", expected " + type2string(context, CondV->getType()));
     context.builder.CreateStore(CondV, i->get_ptr(context));
-    if (type == LoopType::FOR)  CondV = context.builder.CreateICmpSGT(i->codegen(context), EndV);
-    else  CondV = context.builder.CreateICmpSLT(i->codegen(context), EndV);
+    if (type == LoopType::FOR)
+      CondV = context.builder.CreateICmpSGT(i->codegen(context), EndV);
+    else
+      CondV = context.builder.CreateICmpSLT(i->codegen(context), EndV);
   }
   llvm::Function *TheFunction = context.builder.GetInsertBlock()->getParent();
   llvm::BasicBlock *LoopBB = llvm::BasicBlock::Create(context.module->getContext(), "loop", TheFunction);
-  llvm::BasicBlock *AfterBB =
-        llvm::BasicBlock::Create(context.module->getContext(), "end", TheFunction);
+  llvm::BasicBlock *AfterBB = llvm::BasicBlock::Create(context.module->getContext(), "end", TheFunction);
   if (type == LoopType::WHILE)
     context.builder.CreateCondBr(CondV, LoopBB, AfterBB);
   else
@@ -430,13 +421,12 @@ llvm::Value *LoopStmtNode::codegen(CodegenContext &context) {
 }
 
 llvm::Value *CompoundStmtNode::codegen(CodegenContext &context) {
-  for (auto &child : children())
-    child->codegen(context);
+  for (auto &child : children()) child->codegen(context);
   return nullptr;
 }
 
 /* -------- case node -------- */
-llvm::Value *CaseNode::codegen(CodegenContext &context) { return nullptr;}
+llvm::Value *CaseNode::codegen(CodegenContext &context) { return nullptr; }
 
 /* -------- const value nodes -------- */
 llvm::Value *StringNode::codegen(CodegenContext &context) { return context.builder.CreateGlobalStringPtr(val); }

@@ -41,12 +41,10 @@ bool SymbolTable::addGlobalSymbol(string name, shared_ptr<TypeNode> type, llvm::
   }
   auto llvmtype = type->get_llvm_type(context);
   llvm::Constant *constant = nullptr;
-  /*
   if(is_a_ptr_of<AliasTypeNode>(type)){
       auto aliasTypePtr=cast_node<AliasTypeNode>(type);
       type=getGlobalAlias(aliasTypePtr->identifier->name);
   }
-  */
   switch (llvmtype->getTypeID()) {
     case llvm::Type::IntegerTyID:
       constant = (initializer == nullptr) ? llvm::ConstantInt::get(llvmtype, 0) : initializer;

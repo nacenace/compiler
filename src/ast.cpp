@@ -39,15 +39,13 @@ SysCallNode::SysCallNode(const NodePtr &routine, const NodePtr &args)
     : routine(cast_node<SysRoutineNode>(routine)), args(cast_node<ArgListNode>(args)) {}
 
 std::string spc::type2string(Type type) {
-  const std::map<Type, std::string> type_to_string{
-      {Type::UNDEFINED, "<undefined-type>"},
-      {Type::STRING, "string"},
-      {Type::INTEGER, "integer"},
-      {Type::REAL, "real"},
-      {Type::BOOLEN, "boolen"},
-      {Type::CHAR, "char"},
-      {Type::ARRAY, "array"}
-  };
+  const std::map<Type, std::string> type_to_string{{Type::UNDEFINED, "<undefined-type>"},
+                                                   {Type::STRING, "string"},
+                                                   {Type::INTEGER, "integer"},
+                                                   {Type::REAL, "real"},
+                                                   {Type::BOOLEN, "boolen"},
+                                                   {Type::CHAR, "char"},
+                                                   {Type::ARRAY, "array"}};
   return type_to_string.at(type);
 }
 
@@ -61,4 +59,8 @@ std::string StringTypeNode::json_head() const {
 
 std::string ArrayTypeNode::json_head() const {
   return fmt::format("\"type\": \"Type\", \"name\":\"{}\"", type2string(this->type));
+}
+
+std::string AliasTypeNode::json_head() const {
+  return fmt::format("\"type\": \"Type\", \"name\": \"alias\", \"identifier\":{{{0}}}", this->identifier->to_json());
 }
