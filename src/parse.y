@@ -261,11 +261,8 @@ variable_list
 variable
     : ID
         { $$ = $1; }
-    | ID LB const_value RB
-        { $$ = make_node<ArrayRefNode>(cast_node<IdentifierNode>($1)->name.c_str(), cast_node<IntegerNode>($3)->val); }
-    | ID LB variable RB
+    | ID LB expression RB
         { $$ = make_node<ArrayRefNode>(cast_node<IdentifierNode>($1)->name.c_str(), $3); }
-    ;
 
 expression
     : expression GE expr { $$ = make_node<BinopExprNode>(BinaryOperator::GE, $1, $3); }
