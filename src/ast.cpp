@@ -45,7 +45,8 @@ std::string spc::type2string(Type type) {
                                                    {Type::REAL, "real"},
                                                    {Type::BOOLEN, "boolen"},
                                                    {Type::CHAR, "char"},
-                                                   {Type::ARRAY, "array"}};
+                                                   {Type::ARRAY, "array"},
+                                                   {Type::VOID, "void"}};
   return type_to_string.at(type);
 }
 

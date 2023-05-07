@@ -191,10 +191,10 @@ struct IdentifierNode : public LeftValueExprNode {
 struct ArrayRefNode : public IdentifierNode {
  public:
   int index;
-  std::shared_ptr<IdentifierNode> i = nullptr;
+  std::shared_ptr<ExprNode> i = nullptr;
   explicit ArrayRefNode(const char *c, const int index) : IdentifierNode(c), index(index) {}
   explicit ArrayRefNode(const char *c, const std::shared_ptr<AbstractNode> &i)
-      : IdentifierNode(c), i(cast_node<IdentifierNode>(i)) {}
+      : IdentifierNode(c), i(cast_node<ExprNode>(i)) {}
 
   llvm::Value *get_ptr(CodegenContext &context) override;
   llvm::Value *codegen(CodegenContext &context) override;
