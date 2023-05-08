@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
   char *outFile = nullptr;
 
   for (int i = 1; i < argc; ++i) {
-    if (strcmp(argv[i], "-emit-llvm") == 0)
+    if (strcmp(argv[i], "-l") == 0)
       target = Target::LLVM;
     else if (strcmp(argv[i], "-S") == 0)
       target = Target::ASM;
@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
   if (target == Target::UNDEFINED || sourceFile == nullptr) {
     puts("USAGE: exp <option> <source.pas>");
     puts("OPTION:");
-    puts("  -emit-llvm    Emit LLVM IR code (.ll)");
+    puts("  -l            Emit LLVM IR code (.ll)");
     puts("  -S            Emit assembly code (.s)");
     puts("  -c            Emit object code (.o)");
     puts("  -ast          puts ast");
