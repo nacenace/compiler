@@ -101,12 +101,15 @@ type_decl_list
 type_definition
     : ID EQUAL type_decl SEMI
         { $$ = make_node<TypeDefNode>($1, $3); }
+    | ID COLON type_decl SEMI
+        { $$ = make_node<TypeDefNode>($1, $3);}
     ;
 
 type_decl
     : simple_type_decl { $$ = $1; }
     | ARRAY LB const_value DOTDOT const_value RB OF type_decl{$$ = make_node<ArrayTypeNode>($8,
         std::make_pair(cast_node<IntegerNode>($3)->val, cast_node<IntegerNode>($5)->val)); }
+    | RECORD type_decl_list END { $$ = make_node<CompositeTypeNode>($2); }
     ;
 
 simple_type_decl

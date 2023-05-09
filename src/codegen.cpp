@@ -197,7 +197,7 @@ llvm::Type *TypeNode::get_llvm_type(CodegenContext &context) const {
     return llvm_type(array_type->elementType->type, length, context);
   } else if (auto *alias = dynamic_cast<const AliasTypeNode *>(this)) {
     return context.symbolTable.getGlobalAlias(alias->identifier->name)->get_llvm_type(context);
-  }
+  } else if (auto )
 
   throw CodegenException("unsupported type: " + type2string(type));
   return nullptr;  // 这里永远不会运行

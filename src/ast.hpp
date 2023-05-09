@@ -206,6 +206,18 @@ struct ArrayRefNode : public IdentifierNode {
   }
 };
 
+struct StructRefNode : public IdentifierNode {
+ public:
+  std::shared_ptr<IdentifierNode> i = nullptr;
+  explicit StructRefNode(const char *c, const int index) : IdentifierNode(c), i(cast_node<IdentifierNode>(i)) {}
+
+  llvm::Value *get_ptr(CodegenContext &context) override;
+  llvm::Value *codegen(CodegenContext &context) override;
+ protected:
+  std::string json_head() const override {
+    return std::string{"\"type\": \"ArrayRefNode\", \"name\": \""} + this->name + "\"";
+  }
+};
 enum class LoopType { REPEAT, WHILE, FOR, FORDOWN };
 
 inline std::string to_string(LoopType loopType) {
@@ -260,7 +272,9 @@ enum class Type {
   INTEGER,
   REAL,
   CHAR,
-  ARRAY
+  ARRAY,
+  ALIAS,
+  STRUCT
 };
 
 std::string type2string(Type type);
@@ -293,7 +307,9 @@ struct AliasTypeNode : public TypeNode {
   using NodePtr = std::shared_ptr<AbstractNode>;
   std::shared_ptr<IdentifierNode> identifier;
 
-  AliasTypeNode(const NodePtr &identifier) : identifier(cast_node<IdentifierNode>(identifier)) {}
+  AliasTypeNode(const NodePtr &identifier) : identifier(cast_node<IdentifierNode>(identifier)) {
+    type = Type::ALIAS;
+  }
   virtual std::string json_head() const override;
   virtual bool should_have_children() const override { return false; }
 };
@@ -844,6 +860,25 @@ struct ProcStmtNode : public StmtNode {
 };
 
 struct StmtList : public StmtNode {};
+
+struct CompositeTypeNode : public TypeNode {
+ public:
+  using NodePtr = std::shared_ptr<AbstractNode>;
+  std::map<std::string , int> index;
+  std::vector<std::shared_ptr<TypeNode>> types;
+  CompositeTypeNode(const NodePtr &types) {
+    const auto &typelist = cast_node<TypeListNode>(types);
+    int i = 0;
+    for (auto &child : children()) {
+      index[cast_node<TypeDefNode>(child)->name->name] = i++;
+      this->types.push_back(cast_node<TypeNode>(child)->type);
+    }
+  };
+  virtual std::string json_head() const override;
+  virtual bool should_have_children() const override { return false; }
+};
+
+
 }  // namespace spc
 
 #endif
