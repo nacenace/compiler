@@ -187,6 +187,15 @@ static llvm::Type *llvm_type(Type type, CodegenContext &context) {
 static llvm::Type *llvm_type(Type type, int length, CodegenContext &context) {
   return llvm::ArrayType::get(llvm_type(type, context), length);
 }
+static llvm::Type *llvm_type(std::vector<std::shared_ptr<TypeNode>> types, CodegenContext &context) {
+  llvm::StructType* structType = llvm::StructType::get(context.module->getContext());
+  std::vector<llvm::Type*> elements;
+  for(auto &type : types)
+    elements.push_back(type->get_llvm_type(context));
+  structType->setBody(elements);
+  return structType;
+}
+
 llvm::Type *ConstValueNode::get_llvm_type(CodegenContext &context) const { return this->type->get_llvm_type(context); }
 
 llvm::Type *TypeNode::get_llvm_type(CodegenContext &context) const {
@@ -197,7 +206,9 @@ llvm::Type *TypeNode::get_llvm_type(CodegenContext &context) const {
     return llvm_type(array_type->elementType->type, length, context);
   } else if (auto *alias = dynamic_cast<const AliasTypeNode *>(this)) {
     return context.symbolTable.getGlobalAlias(alias->identifier->name)->get_llvm_type(context);
-  } else if (auto )
+  } else if (auto *struct_type = dynamic_cast<const CompositeTypeNode *>(this)) {
+    return llvm_type(struct_type->types, context);
+  }
 
   throw CodegenException("unsupported type: " + type2string(type));
   return nullptr;  // 这里永远不会运行

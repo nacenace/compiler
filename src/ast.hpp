@@ -867,13 +867,14 @@ struct CompositeTypeNode : public TypeNode {
   std::map<std::string , int> index;
   std::vector<std::shared_ptr<TypeNode>> types;
   CompositeTypeNode(const NodePtr &types) {
-    const auto &typelist = cast_node<TypeListNode>(types);
     int i = 0;
-    for (auto &child : children()) {
+    for (auto &child : types->children()) {
       index[cast_node<TypeDefNode>(child)->name->name] = i++;
-      this->types.push_back(cast_node<TypeNode>(child)->type);
+      this->types.push_back(cast_node<TypeDefNode>(child)->type);
     }
-  };
+    this->type = Type::STRUCT;
+  }
+
   virtual std::string json_head() const override;
   virtual bool should_have_children() const override { return false; }
 };
