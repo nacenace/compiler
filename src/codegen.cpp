@@ -206,7 +206,7 @@ llvm::Type *TypeNode::get_llvm_type(CodegenContext &context) const {
     return llvm_type(array_type->elementType->type, length, context);
   } else if (auto *alias = dynamic_cast<const AliasTypeNode *>(this)) {
     return context.symbolTable.getGlobalAlias(alias->identifier->name)->get_llvm_type(context);
-  } else if (auto *struct_type = dynamic_cast<const CompositeTypeNode *>(this)) {
+  } else if (auto *struct_type = dynamic_cast<const RecordTypeNode *>(this)) {
     return llvm_type(struct_type->types, context);
   }
 
@@ -341,6 +341,14 @@ llvm::Value *ArrayRefNode::get_index(CodegenContext &context) {
   return context.builder.CreateSub(i->codegen(context), context.builder.getInt32(bound.first));
 }
 
+llvm::Value *StructRefNode::get_ptr(CodegenContext &context) {
+  auto value = context.symbolTable.getLocalSymbol(name);
+  if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
+  if (value == nullptr) throw CodegenException("identifier not found: " + name);
+  return context.builder.CreateGEP(value->get_llvmptr(), std::vector<llvm::Value *>{context.builder.getInt32(0),
+                  context.builder.getInt32( cast_node<RecordTypeNode>(value->typeNode)->index[index])});
+}
+
 llvm::Type *IdentifierNode::get_llvmtype(CodegenContext &context) {
   auto value = context.symbolTable.getLocalSymbol(name);
   if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
@@ -351,7 +359,7 @@ llvm::Type *IdentifierNode::get_llvmtype(CodegenContext &context) {
 llvm::Value *IdentifierNode::codegen(CodegenContext &context) { return context.builder.CreateLoad(get_ptr(context)); }
 
 llvm::Value *ArrayRefNode::codegen(CodegenContext &context) { return context.builder.CreateLoad(get_ptr(context)); }
-
+llvm::Value *StructRefNode::codegen(CodegenContext &context) { return context.builder.CreateLoad(get_ptr(context)); }
 /* -------- stmt nodes -------- */
 llvm::Value *AssignStmtNode::codegen(CodegenContext &context) {
   auto assignee = cast_node<LeftValueExprNode>(this->lhs);

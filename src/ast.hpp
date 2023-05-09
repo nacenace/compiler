@@ -208,11 +208,12 @@ struct ArrayRefNode : public IdentifierNode {
 
 struct StructRefNode : public IdentifierNode {
  public:
-  std::shared_ptr<IdentifierNode> i = nullptr;
-  explicit StructRefNode(const char *c, const int index) : IdentifierNode(c), i(cast_node<IdentifierNode>(i)) {}
+  std::string index;
+  explicit StructRefNode(const char *c, const std::string index) : IdentifierNode(c), index(index) {}
 
   llvm::Value *get_ptr(CodegenContext &context) override;
   llvm::Value *codegen(CodegenContext &context) override;
+
  protected:
   std::string json_head() const override {
     return std::string{"\"type\": \"ArrayRefNode\", \"name\": \""} + this->name + "\"";
@@ -273,7 +274,6 @@ enum class Type {
   REAL,
   CHAR,
   ARRAY,
-  ALIAS,
   STRUCT
 };
 
@@ -307,9 +307,7 @@ struct AliasTypeNode : public TypeNode {
   using NodePtr = std::shared_ptr<AbstractNode>;
   std::shared_ptr<IdentifierNode> identifier;
 
-  AliasTypeNode(const NodePtr &identifier) : identifier(cast_node<IdentifierNode>(identifier)) {
-    type = Type::ALIAS;
-  }
+  AliasTypeNode(const NodePtr &identifier) : identifier(cast_node<IdentifierNode>(identifier)) {}
   virtual std::string json_head() const override;
   virtual bool should_have_children() const override { return false; }
 };
@@ -861,12 +859,12 @@ struct ProcStmtNode : public StmtNode {
 
 struct StmtList : public StmtNode {};
 
-struct CompositeTypeNode : public TypeNode {
+struct RecordTypeNode : public TypeNode {
  public:
   using NodePtr = std::shared_ptr<AbstractNode>;
-  std::map<std::string , int> index;
+  std::map<std::string, int> index;
   std::vector<std::shared_ptr<TypeNode>> types;
-  CompositeTypeNode(const NodePtr &types) {
+  RecordTypeNode(const NodePtr &types) {
     int i = 0;
     for (auto &child : types->children()) {
       index[cast_node<TypeDefNode>(child)->name->name] = i++;
