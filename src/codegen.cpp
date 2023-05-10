@@ -188,10 +188,9 @@ static llvm::Type *llvm_type(Type type, int length, CodegenContext &context) {
   return llvm::ArrayType::get(llvm_type(type, context), length);
 }
 static llvm::Type *llvm_type(std::vector<std::shared_ptr<TypeNode>> types, CodegenContext &context) {
-  llvm::StructType* structType = llvm::StructType::get(context.module->getContext());
-  std::vector<llvm::Type*> elements;
-  for(auto &type : types)
-    elements.push_back(type->get_llvm_type(context));
+  llvm::StructType *structType = llvm::StructType::get(context.module->getContext());
+  std::vector<llvm::Type *> elements;
+  for (auto &type : types) elements.push_back(type->get_llvm_type(context));
   structType->setBody(elements);
   return structType;
 }
@@ -345,8 +344,10 @@ llvm::Value *StructRefNode::get_ptr(CodegenContext &context) {
   auto value = context.symbolTable.getLocalSymbol(name);
   if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
   if (value == nullptr) throw CodegenException("identifier not found: " + name);
-  return context.builder.CreateGEP(value->get_llvmptr(), std::vector<llvm::Value *>{context.builder.getInt32(0),
-                  context.builder.getInt32( cast_node<RecordTypeNode>(value->typeNode)->index[index])});
+  return context.builder.CreateGEP(
+      value->get_llvmptr(),
+      std::vector<llvm::Value *>{context.builder.getInt32(0),
+                                 context.builder.getInt32(cast_node<RecordTypeNode>(value->typeNode)->index[index])});
 }
 
 llvm::Type *IdentifierNode::get_llvmtype(CodegenContext &context) {
