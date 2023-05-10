@@ -879,7 +879,6 @@ struct RecordTypeNode : public TypeNode {
   virtual bool should_have_children() const override { return false; }
 };
 
-
 }  // namespace spc
 
 #endif

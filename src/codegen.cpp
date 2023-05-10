@@ -186,10 +186,9 @@ static llvm::Type *llvm_type(Type type, int length, CodegenContext &context) {
   return llvm::ArrayType::get(llvm_type(type, context), length);
 }
 static llvm::Type *llvm_type(std::vector<std::shared_ptr<TypeNode>> types, CodegenContext &context) {
-  llvm::StructType* structType = llvm::StructType::get(context.module->getContext());
-  std::vector<llvm::Type*> elements;
-  for(auto &type : types)
-    elements.push_back(type->get_llvm_type(context));
+  llvm::StructType *structType = llvm::StructType::get(context.module->getContext());
+  std::vector<llvm::Type *> elements;
+  for (auto &type : types) elements.push_back(type->get_llvm_type(context));
   structType->setBody(elements);
   return structType;
 }
