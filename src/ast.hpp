@@ -612,9 +612,11 @@ struct VarDeclNode : public DummyNode {
   std::shared_ptr<IdentifierNode> name;
   /// 变量类型
   std::shared_ptr<TypeNode> type;
+  /// 变量初始值
+  std::shared_ptr<ConstValueNode> value;
 
-  VarDeclNode(const std::shared_ptr<AbstractNode> &name, const std::shared_ptr<AbstractNode> &type)
-      : name(cast_node<IdentifierNode>(name)), type(cast_node<TypeNode>(type)) {}
+  VarDeclNode(const std::shared_ptr<AbstractNode> &name, const std::shared_ptr<AbstractNode> &type, const std::shared_ptr<AbstractNode> &value = nullptr)
+      : name(cast_node<IdentifierNode>(name)), type(cast_node<TypeNode>(type)), value(value ? cast_node<ConstValueNode>(value) : nullptr) {}
 
   llvm::Value *codegen(CodegenContext &context) override;
 

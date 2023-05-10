@@ -558,9 +558,11 @@ llvm::Value *VarDeclNode::codegen(CodegenContext &context) {
     bool success = context.symbolTable.addLocalSymbol(name->name, type);
     if (!success) throw CodegenException("duplicate identifier in var section: " + name->name);
     auto local = context.symbolTable.getLocalSymbol(name->name);
+    context.builder.CreateStore(value->codegen(context), local->get_llvmptr());
     return local->get_llvmptr();
   } else {
-    bool success = context.symbolTable.addGlobalSymbol(name->name, type, nullptr);
+    auto *constant = llvm::cast<llvm::Constant>(value->codegen(context));  //获得初值
+    bool success = context.symbolTable.addGlobalSymbol(name->name, value->type, constant, false);
     if (!success) throw CodegenException("duplicate global identifier in var sectrion: " + name->name);
     auto ptr = context.symbolTable.getGlobalSymbol(name->name)->get_llvmptr();
     return ptr;
