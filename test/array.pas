@@ -1,4 +1,4 @@
-{数组测试样例}
+{单元测试:数组测试样例}
 program prog;
 var
    n: array [1..10] of integer;   (* n is an array of 10 integers *)

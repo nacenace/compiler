@@ -1,7 +1,8 @@
+{单元测试:过程和函数测试}
 program prog;
 var
   x: integer;
-
+{计算自然数 x 及其前面所有自然数的和}
 function f(x: integer): integer;
   begin
     if x = 0 then f := 0
@@ -16,6 +17,8 @@ procedure g(x: integer);
   end;
 
 begin
+  writeln('Please input one integer x');
   readln(x);
+  writeln('递归调用函数f(X)结果:');
   g(x);
 end.

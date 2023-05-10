@@ -1,7 +1,7 @@
-
+{类型不匹配的赋值}
 Program prog;
 
-Var
+var
 x, y : integer;
 a : record
   title: array [1..50] of char;
@@ -9,6 +9,6 @@ a : record
   subject: array [1..100] of char;
   bookid: integer;
 end;
-Begin
+begin
   x := a;
-End.
+end.

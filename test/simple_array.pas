@@ -1,3 +1,4 @@
+{单元测试:数组}
 program prop;
 var
   n: array [3..10] of integer;

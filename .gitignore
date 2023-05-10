@@ -20,3 +20,9 @@ cmake-build-debug/
 /.cache
 
 /.vscode
+
+# Except for files in the special_folder directory
+!/test/output/*.json
+!/test/output/*.ll
+!/test/output/*.s
+!/folder/.exp

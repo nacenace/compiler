@@ -1,3 +1,4 @@
+{快排测试}
 program prog;
 var nums:array[1..10] of integer;i:integer;x:integer;
 function partion(low:integer;high:integer):integer;
@@ -30,17 +31,19 @@ procedure quickSort(low:integer;high:integer);
         end;
     end;
 begin
+    writeln('Please enter 10 integers, press Enter after each number:');
     for i:=1 to 10 do begin
         readln(x);
         nums[i]:=x;
         
     end;
-    writeln('Echo');
+    writeln('The numbers you entered are:');
     for i:=1 to 10 do begin
         writeln(nums[i]);
     end;
     writeln('Start to sort');
     quickSort(1,10);
+    writeln('The sorted numbers are:');
     for i:=1 to 10 do begin
         writeln(nums[i]);
     end;

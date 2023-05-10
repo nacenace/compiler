@@ -1,6 +1,7 @@
+{数组和整数之间的比较}
 Program prog;
 
-Var
+var
 x, y : integer;
 a : record
   title: array [1..50] of char;
@@ -8,6 +9,6 @@ a : record
   subject: array [1..100] of char;
   bookid: integer;
 end;
-Begin
+begin
   x := a > y;
-End.
+end.
