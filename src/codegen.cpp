@@ -112,16 +112,14 @@ llvm::Value *SysCallNode::codegen(CodegenContext &context) {
     }
     case SysRoutine::ABS: {
       if (args->children().size() != 1) throw CodegenException("no matching function for call to 'abs'");
-      auto fabs_type = llvm::FunctionType::get(context.builder.getDoubleTy(), context.builder.getDoubleTy(), false);
-      auto fabs_func = context.module->getOrInsertFunction("fabs", fabs_type);
       auto arg = *args->children().begin();
       auto value = arg->codegen(context);
       if (!(value->getType()->isIntegerTy(32) || value->getType()->isDoubleTy()))
         throw CodegenException("incompatible type in abs(): expected integer, real");
-      std::vector<llvm::Value *> args;
-      if (value->getType()->isIntegerTy(32)) value = context.builder.CreateUIToFP(value, context.builder.getDoubleTy());
-      args.push_back(value);
-      return context.builder.CreateCall(fabs_func, args);
+      auto type = value->getType();
+      auto fabs_type = llvm::FunctionType::get(type, type, false);
+      auto fabs_func = context.module->getOrInsertFunction(type->isDoubleTy()? "fabs" : "abs", fabs_type);
+      return context.builder.CreateCall(fabs_func, std::vector<llvm::Value *>{value});
     }
     case SysRoutine::ORD: {
       if (args->children().size() != 1) throw CodegenException("no matching function for call to 'ord'");
