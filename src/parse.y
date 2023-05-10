@@ -271,9 +271,9 @@ variable
         { $$ = $1; }
     | ID LB expression RB
         { $$ = make_node<ArrayRefNode>(cast_node<IdentifierNode>($1)->name.c_str(), $3); }
-    | ID DOT ID
+    | ID DOT variable
         { $$ = make_node<StructRefNode>(cast_node<IdentifierNode>($1)->name.c_str(),
-        cast_node<IdentifierNode>($3)->name); }
+        cast_node<IdentifierNode>($3)); }
 
 expression
     : expression GE expr { $$ = make_node<BinopExprNode>(BinaryOperator::GE, $1, $3); }

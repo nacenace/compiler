@@ -343,8 +343,15 @@ llvm::Value *StructRefNode::get_ptr(CodegenContext &context) {
   auto value = context.symbolTable.getLocalSymbol(name);
   if (value == nullptr) value = context.symbolTable.getGlobalSymbol(name);
   if (value == nullptr) throw CodegenException("identifier not found: " + name);
-  return context.builder.CreateGEP(value->get_llvmptr(), std::vector<llvm::Value *>{context.builder.getInt32(0),
-                  context.builder.getInt32( cast_node<RecordTypeNode>(value->typeNode)->index[index])});
+  auto ptr = context.builder.CreateGEP(value->get_llvmptr(), std::vector<llvm::Value *>
+      {context.builder.getInt32(0),context.builder.getInt32( cast_node<RecordTypeNode>(value->typeNode)->index[index->name])});
+  if (is_a_ptr_of<ArrayRefNode>(index)){
+    auto array_type = cast_node<RecordTypeNode>(value->typeNode)->types[cast_node<RecordTypeNode>(value->typeNode)->index[index->name]];
+    auto bound = cast_node<ArrayTypeNode>(array_type)->bounds;
+    auto i = context.builder.CreateSub(cast_node<ArrayRefNode>(index)->i->codegen(context), context.builder.getInt32(bound.first));
+    return context.builder.CreateGEP(ptr,std::vector<llvm::Value *>{context.builder.getInt32(0), i});
+  }
+  return ptr;
 }
 
 llvm::Type *IdentifierNode::get_llvmtype(CodegenContext &context) {
@@ -558,11 +565,15 @@ llvm::Value *VarDeclNode::codegen(CodegenContext &context) {
     bool success = context.symbolTable.addLocalSymbol(name->name, type);
     if (!success) throw CodegenException("duplicate identifier in var section: " + name->name);
     auto local = context.symbolTable.getLocalSymbol(name->name);
-    context.builder.CreateStore(value->codegen(context), local->get_llvmptr());
+    if (value) context.builder.CreateStore(value->codegen(context), local->get_llvmptr());
     return local->get_llvmptr();
   } else {
-    auto *constant = llvm::cast<llvm::Constant>(value->codegen(context));  //获得初值
-    bool success = context.symbolTable.addGlobalSymbol(name->name, value->type, constant, false);
+    bool success;
+    if (value) {
+      auto *constant = llvm::cast<llvm::Constant>(value->codegen(context));  // 获得初值
+      success = context.symbolTable.addGlobalSymbol(name->name, value->type, constant, false);
+    }
+    else success = context.symbolTable.addGlobalSymbol(name->name, type, nullptr);
     if (!success) throw CodegenException("duplicate global identifier in var sectrion: " + name->name);
     auto ptr = context.symbolTable.getGlobalSymbol(name->name)->get_llvmptr();
     return ptr;

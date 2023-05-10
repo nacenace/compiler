@@ -208,8 +208,8 @@ struct ArrayRefNode : public IdentifierNode {
 
 struct StructRefNode : public IdentifierNode {
  public:
-  std::string index;
-  explicit StructRefNode(const char *c, const std::string index) : IdentifierNode(c), index(index) {}
+  std::shared_ptr<IdentifierNode> index;
+  explicit StructRefNode(const char *c, const std::shared_ptr<IdentifierNode> index) : IdentifierNode(c), index(index) {}
 
   llvm::Value *get_ptr(CodegenContext &context) override;
   llvm::Value *codegen(CodegenContext &context) override;
