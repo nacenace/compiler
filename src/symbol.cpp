@@ -55,11 +55,9 @@ bool SymbolTable::addGlobalSymbol(string name, shared_ptr<TypeNode> type, llvm::
     case llvm::Type::ArrayTyID:
       constant = llvm::ConstantAggregateZero::get(cast_node<ArrayTypeNode>(type)->elementType->get_llvm_type(context));
       break;
-        /*
     case llvm::Type::StructTyID:
-        constant=llvm::ConstantAggregateZero::get(cast_node<RecordTypeNode>(type)->innertype);
+        constant=llvm::ConstantAggregateZero::get(cast_node<RecordTypeNode>(type)->get_llvm_type(context));
         break;
-        */
     default:
       throw CodegenException("unsupported type: " + type2string(type->type));
   }

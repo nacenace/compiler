@@ -206,6 +206,19 @@ struct ArrayRefNode : public IdentifierNode {
   }
 };
 
+struct StructRefNode : public IdentifierNode {
+ public:
+  std::string index;
+  explicit StructRefNode(const char *c, const std::string index) : IdentifierNode(c), index(index) {}
+
+  llvm::Value *get_ptr(CodegenContext &context) override;
+  llvm::Value *codegen(CodegenContext &context) override;
+
+ protected:
+  std::string json_head() const override {
+    return std::string{"\"type\": \"ArrayRefNode\", \"name\": \""} + this->name + "\"";
+  }
+};
 enum class LoopType { REPEAT, WHILE, FOR, FORDOWN };
 
 inline std::string to_string(LoopType loopType) {
@@ -260,7 +273,8 @@ enum class Type {
   INTEGER,
   REAL,
   CHAR,
-  ARRAY
+  ARRAY,
+  STRUCT
 };
 
 std::string type2string(Type type);
@@ -844,6 +858,26 @@ struct ProcStmtNode : public StmtNode {
 };
 
 struct StmtList : public StmtNode {};
+
+struct RecordTypeNode : public TypeNode {
+ public:
+  using NodePtr = std::shared_ptr<AbstractNode>;
+  std::map<std::string, int> index;
+  std::vector<std::shared_ptr<TypeNode>> types;
+  RecordTypeNode(const NodePtr &types) {
+    int i = 0;
+    for (auto &child : types->children()) {
+      index[cast_node<TypeDefNode>(child)->name->name] = i++;
+      this->types.push_back(cast_node<TypeDefNode>(child)->type);
+    }
+    this->type = Type::STRUCT;
+  }
+
+  virtual std::string json_head() const override;
+  virtual bool should_have_children() const override { return false; }
+};
+
+
 }  // namespace spc
 
 #endif

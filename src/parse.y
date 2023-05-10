@@ -101,12 +101,15 @@ type_decl_list
 type_definition
     : ID EQUAL type_decl SEMI
         { $$ = make_node<TypeDefNode>($1, $3); }
+    | ID COLON type_decl SEMI
+        { $$ = make_node<TypeDefNode>($1, $3); }
     ;
 
 type_decl
     : simple_type_decl { $$ = $1; }
     | ARRAY LB const_value DOTDOT const_value RB OF type_decl{$$ = make_node<ArrayTypeNode>($8,
         std::make_pair(cast_node<IntegerNode>($3)->val, cast_node<IntegerNode>($5)->val)); }
+    | RECORD type_decl_list END { $$ = make_node<RecordTypeNode>($2); }
     ;
 
 simple_type_decl
@@ -128,6 +131,10 @@ var_decl
     : name_list COLON type_decl SEMI
         { $$ = make_node<VarListNode>();
           for (auto name : $1->children()) $$->add_child(make_node<VarDeclNode>(name, $3)); }
+    | name_list COLON ID SEMI
+        { $$ = make_node<VarListNode>();
+          for (auto name : $1->children()) $$->add_child(make_node<VarDeclNode>(name,
+          make_node<AliasTypeNode>($3))); }
     ;
 
 routine_part: routine_part function_decl { $$ = $1; $$->add_child($2); }
@@ -247,8 +254,8 @@ loop_stmt
         { $$ = make_node<LoopStmtNode>(LoopType::FOR, $4, $8, $2, $6); }
     | FOR ID ASSIGN expression DOWNTO expression DO for_body
               { $$ = make_node<LoopStmtNode>(LoopType::FOR, $4, $8, $2, $6); }
-    | WHILE expression DO loop_body { $$ = make_node<LoopStmtNode>(LoopType::WHILE, $2, $4);}
-    | REPEAT loop_body UNTIL expression {$$ = make_node<LoopStmtNode>(LoopType::REPEAT, $4, $2);}
+    | WHILE expression DO loop_body { $$ = make_node<LoopStmtNode>(LoopType::WHILE, $2, $4); }
+    | REPEAT loop_body UNTIL expression {$$ = make_node<LoopStmtNode>(LoopType::REPEAT, $4, $2); }
     ;
 
 variable_list
@@ -263,6 +270,9 @@ variable
         { $$ = $1; }
     | ID LB expression RB
         { $$ = make_node<ArrayRefNode>(cast_node<IdentifierNode>($1)->name.c_str(), $3); }
+    | ID DOT ID
+        { $$ = make_node<StructRefNode>(cast_node<IdentifierNode>($1)->name.c_str(),
+        cast_node<IdentifierNode>($3)->name); }
 
 expression
     : expression GE expr { $$ = make_node<BinopExprNode>(BinaryOperator::GE, $1, $3); }
