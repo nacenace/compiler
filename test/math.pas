@@ -7,8 +7,8 @@ var
     d : array [1..10] of Integer;
   end;
 begin
-  writeln(abs(a));
-  WriteLn(Abs(b));
+  writeln('-2的绝对值: ',abs(a));
+  WriteLn('-5.0的绝对值: ',Abs(b));
   c.d[1] := -15;
   WriteLn(Abs(c.d[1]));
 end.
