@@ -80,9 +80,9 @@ const_expr_list
 
 const_value
     : INTEGER { $$ = $1; }
-    | MINUS INTEGER %prec UMINUS { cast_node<IntegerNode>($1)->val=0-cast_node<IntegerNode>($1)->val;$$=$1; }
+    | MINUS INTEGER %prec UMINUS { cast_node<IntegerNode>($2)->val=0-cast_node<IntegerNode>($2)->val;$$=$2; }
     | REAL    { $$ = $1; }
-    | MINUS REAL %prec UMINUS { cast_node<RealNode>($1)->val=0-cast_node<RealNode>($1)->val;$$=$1;}
+    | MINUS REAL %prec UMINUS { cast_node<RealNode>($2)->val=0-cast_node<RealNode>($2)->val;$$=$2;}
     | CHAR    { $$ = $1; }
     | STRING  { $$ = $1; }
     | SYS_CON { $$ = $1; }
@@ -128,14 +128,15 @@ var_decl_list
     ;
 
 var_decl
-    : name_list COLON type_decl SEMI
+    : name_list COLON type_decl EQUAL const_value SEMI { $$ = make_node<VarListNode>();
+                        for (auto name : $1->children()) $$->add_child(make_node<VarDeclNode>(name, $3, $5)); }
+    | name_list COLON type_decl SEMI
         { $$ = make_node<VarListNode>();
           for (auto name : $1->children()) $$->add_child(make_node<VarDeclNode>(name, $3)); }
     | name_list COLON ID SEMI
         { $$ = make_node<VarListNode>();
           for (auto name : $1->children()) $$->add_child(make_node<VarDeclNode>(name,
           make_node<AliasTypeNode>($3))); }
-    ;
 
 routine_part: routine_part function_decl { $$ = $1; $$->add_child($2); }
     | routine_part procedure_decl { $$ = $1; $$->add_child($2); }
@@ -270,9 +271,9 @@ variable
         { $$ = $1; }
     | ID LB expression RB
         { $$ = make_node<ArrayRefNode>(cast_node<IdentifierNode>($1)->name.c_str(), $3); }
-    | ID DOT ID
+    | ID DOT variable
         { $$ = make_node<StructRefNode>(cast_node<IdentifierNode>($1)->name.c_str(),
-        cast_node<IdentifierNode>($3)->name); }
+        cast_node<IdentifierNode>($3)); }
 
 expression
     : expression GE expr { $$ = make_node<BinopExprNode>(BinaryOperator::GE, $1, $3); }
